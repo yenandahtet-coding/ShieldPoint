@@ -1,0 +1,27 @@
+.env for fraud-service
+======================
+
+PROJECT_NAME="Nova Pay Fraud Service"
+PORT=8002
+ENVIRONMENT=development
+KAFKA_BOOTSTRAP_SERVERS=localhost:9092
+CONSUMER_GROUP_ID=fraud-service-group
+MONGODB_URL="mongodb+srv://kohtetttan112_db_user:gj7TAHUUA65fZro2@cluster0.x9eyhqc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+MONGODB_DB_NAME=nova_fraud
+
+.env for swift-glass-Pay
+========================
+
+VITE_SUPABASE_URL=https://vbrptxkiegiqxpirgfhv.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZicnB0eGtpZWdpcXhwaXJnZmh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NzI3MjUsImV4cCI6MjEwMTM0ODcyNX0.nB3yWyLQYL5tAuVbZu23LDH_5sgTx2NDs7vqzYfIe8M
+
+.env for logger-service
+========================
+
+PROJECT_NAME="Nova Pay Logger Service"
+PORT=8001
+ENVIRONMENT=development
+# DATABASE_URL=postgresql://nova_user:nova_password@localhost:5432/nova_logger
+DATABASE_URL=postgresql://postgres:5KPfIBWn6aV7RwHF@db.vbrptxkiegiqxpirgfhv.supabase.co:5432/postgres
+KAFKA_BOOTSTRAP_SERVERS=localhost:9092
+CONSUMER_GROUP_ID=logger-service-group
