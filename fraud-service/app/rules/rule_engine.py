@@ -5,7 +5,8 @@ from app.rules.specific_rules import (
     BlacklistedReceiverRule,
     OutsideBusinessHoursRule,
     HighFrequencyRule,
-    RapidConsecutiveTransfersRule
+    RapidConsecutiveTransfersRule,
+    ImpossibleTravelRule
 )
 from app.schemas.events import TransactionCreatedEvent
 
@@ -17,7 +18,8 @@ class RuleEngine:
             BlacklistedReceiverRule(),
             OutsideBusinessHoursRule(),
             HighFrequencyRule(),
-            RapidConsecutiveTransfersRule()
+            RapidConsecutiveTransfersRule(),
+            ImpossibleTravelRule()
         ]
 
     def analyze(self, event: TransactionCreatedEvent) -> Tuple[int, str, List[str]]:

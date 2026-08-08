@@ -23,35 +23,3 @@ services:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-
-  # -------------------------------------
-  # Logger Service Database (PostgreSQL)
-  # -------------------------------------
-  logger-db:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_USER: nova_user
-      POSTGRES_PASSWORD: nova_password
-      POSTGRES_DB: nova_logger
-    ports:
-      - "5432:5432"
-    volumes:
-      - logger_db_data:/var/lib/postgresql/data
-
-  # -------------------------------------
-  # Fraud Service Database (MongoDB)
-  # -------------------------------------
-  fraud-db:
-    image: mongo:6.0
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: nova_user
-      MONGO_INITDB_ROOT_PASSWORD: nova_password
-      MONGO_INITDB_DATABASE: nova_fraud
-    ports:
-      - "27017:27017"
-    volumes:
-      - fraud_db_data:/data/db
-
-volumes:
-  logger_db_data:
-  fraud_db_data:

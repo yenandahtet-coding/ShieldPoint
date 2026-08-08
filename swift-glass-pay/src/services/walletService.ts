@@ -29,24 +29,20 @@ export const walletService = {
 
     const { data, error } = await supabase
       .from('transactions')
-      .select(`
-        *,
-        sender:profiles!sender_id(name, phone),
-        receiver:profiles!receiver_id(name, phone)
-      `)
-      .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+      .select('*')
+      .or(`sender_id.eq.${user.id},receiver_phone.eq.${user.phone}`)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
 
     return data.map((t: any) => ({
-      id: t.id,
+      id: t.id || t.transaction_id,
       senderId: t.sender_id,
-      senderPhone: t.sender?.phone,
-      senderName: t.sender?.name || "Wallet User",
-      receiverId: t.receiver_id,
-      receiverPhone: t.receiver?.phone,
-      receiverName: t.receiver?.name || "Wallet User",
+      senderPhone: t.sender_id === user.id ? user.phone : "Unknown",
+      senderName: t.sender_id === user.id ? "Me" : "Unknown Sender",
+      receiverId: t.receiver_phone,
+      receiverPhone: t.receiver_phone,
+      receiverName: t.receiver_phone || "Unknown User",
       amount: Number(t.amount),
       currency: t.currency,
       type: t.type,

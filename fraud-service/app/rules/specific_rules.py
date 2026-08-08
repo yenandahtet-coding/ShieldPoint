@@ -80,3 +80,32 @@ class RapidConsecutiveTransfersRule(FraudRule):
             if history[-1] - history[-3] < 5:
                 return 20, True
         return 0, False
+
+location_history_cache = defaultdict(lambda: {"location": None, "timestamp": 0})
+
+class ImpossibleTravelRule(FraudRule):
+    @property
+    def name(self) -> str:
+        return "Impossible Travel: Location changed rapidly"
+        
+    def evaluate(self, event: TransactionCreatedEvent) -> Tuple[int, bool]:
+        sender_id = event.payload.senderId
+        location = event.payload.location
+        now = time.time()
+        
+        if not location:
+            return 0, False
+            
+        history = location_history_cache[sender_id]
+        prev_location = history["location"]
+        prev_time = history["timestamp"]
+        
+        # update cache
+        location_history_cache[sender_id] = {"location": location, "timestamp": now}
+        
+        if prev_location and prev_location != location:
+            # check logic: if location changes in < 2 hours (7200 seconds)
+            if now - prev_time < 7200:
+                return 50, True
+                
+        return 0, False
