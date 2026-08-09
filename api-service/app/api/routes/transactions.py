@@ -1,19 +1,23 @@
 from fastapi import APIRouter, status
 from app.schemas.transaction import TransactionRequest, TransactionResponse
 from app.services.transaction_service import TransactionService
+from app.api.routes.metrics import increment_transaction
 
 router = APIRouter()
 
 @router.post("/transfer", response_model=TransactionResponse, status_code=status.HTTP_202_ACCEPTED)
 def transfer(request: TransactionRequest):
+    increment_transaction()
     return TransactionService.process_transfer(request)
 
 @router.post("/deposit", response_model=TransactionResponse, status_code=status.HTTP_202_ACCEPTED)
 def deposit(request: TransactionRequest):
+    increment_transaction()
     return TransactionService.process_deposit(request)
 
 @router.post("/withdraw", response_model=TransactionResponse, status_code=status.HTTP_202_ACCEPTED)
 def withdraw(request: TransactionRequest):
+    increment_transaction()
     return TransactionService.process_withdraw(request)
 
 @router.get("/transactions")

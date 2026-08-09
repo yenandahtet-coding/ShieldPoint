@@ -15,7 +15,7 @@ import {
   Sun,
   X,
 } from "lucide-react";
-import { api } from "@/lib/api";
+import { auth } from "@/lib/auth";
 import { useTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
 
@@ -36,7 +36,7 @@ export function AppShell() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   useEffect(() => {
-    if (!api.isAuthed()) navigate({ to: "/" });
+    if (!auth.isAuthed()) navigate({ to: "/" });
   }, [navigate]);
 
   useEffect(() => setOpen(false), [pathname]);
@@ -116,7 +116,7 @@ export function AppShell() {
               </button>
               <button
                 onClick={() => {
-                  api.logout();
+                  auth.logout();
                   navigate({ to: "/" });
                 }}
                 className="rounded-lg border border-border p-2 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive"

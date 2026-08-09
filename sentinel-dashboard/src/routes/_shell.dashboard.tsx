@@ -20,10 +20,12 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { api } from "@/lib/api";
+import { metricsService } from "@/services/metricsService";
+import { healthService } from "@/services/healthService";
 import { AnimatedCounter } from "@/components/animated-counter";
 import { CardSkeleton } from "@/components/skeletons";
 import { chartTooltip } from "@/components/chart-theme";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_shell/dashboard")({
   head: () => ({
@@ -45,40 +47,48 @@ export const Route = createFileRoute("/_shell/dashboard")({
 });
 
 function DashboardPage() {
-  const { data, isLoading } = useQuery({
-    queryKey: ["dashboard"],
-    queryFn: api.getDashboard,
+  const { data: metrics, isLoading: isMetricsLoading } = useQuery({
+    queryKey: ["dashboard-metrics"],
+    queryFn: metricsService.getMetrics,
     refetchInterval: 8000,
   });
-  const { data: analytics } = useQuery({ queryKey: ["analytics"], queryFn: api.getAnalytics });
+  
+  const { data: health, isLoading: isHealthLoading } = useQuery({
+    queryKey: ["dashboard-health"],
+    queryFn: healthService.getHealth,
+    refetchInterval: 10000,
+  });
 
-  if (isLoading || !data) return <CardSkeleton count={8} />;
+  if (isMetricsLoading || isHealthLoading || !metrics || !health) return <CardSkeleton count={8} />;
+
+  const legitimateCount = Math.max(0, metrics.transactionsProcessed - metrics.fraudDetected);
+  const avgRisk = metrics.fraudDetected > 0 ? (metrics.highRisk * 85 + metrics.mediumRisk * 55) / metrics.fraudDetected : 12;
 
   const kpis = [
     {
       label: "Total transactions today",
-      value: data.totalTransactions,
+      value: metrics.transactionsProcessed,
       icon: Activity,
       tone: "text-primary",
-      sub: "+4.8% vs yesterday",
+      sub: "Processed by Logger",
     },
     {
       label: "Fraud detected",
-      value: data.fraudDetected,
+      value: metrics.fraudDetected,
       icon: ShieldX,
       tone: "text-danger",
       sub: "Blocked before settlement",
     },
     {
       label: "Legitimate transactions",
-      value: data.legitimate,
+      value: legitimateCount,
       icon: ShieldCheck,
       tone: "text-success",
       sub: "Auto-approved by policy",
     },
     {
       label: "Average risk score",
-      value: data.avgRiskScore,
+      value: avgRisk,
       decimals: 1,
       icon: Gauge,
       tone: "text-warning",
@@ -86,7 +96,7 @@ function DashboardPage() {
     },
     {
       label: "Active consumers",
-      value: data.activeConsumers,
+      value: metrics.activeConsumers,
       icon: Users,
       tone: "text-cyan",
       sub: "Kafka consumer group",
@@ -95,21 +105,21 @@ function DashboardPage() {
 
   const services = [
     {
-      label: "Kafka queue",
-      status: data.kafka.status,
-      detail: `Consumer lag ${data.kafka.lag} msgs`,
+      label: "Fraud Service",
+      status: health.fraud.status,
+      detail: `MongoDB: ${health.fraud.mongodb || "N/A"}`,
       icon: Layers,
     },
     {
-      label: "API service",
-      status: data.api.status,
-      detail: `p95 latency ${data.api.p95} ms`,
+      label: "API Gateway",
+      status: health.api.status,
+      detail: `FastAPI Proxy`,
       icon: Radio,
     },
     {
-      label: "PostgreSQL",
-      status: data.database.status,
-      detail: `${data.database.connections} active connections`,
+      label: "Logger Service",
+      status: health.logger.status,
+      detail: `PostgreSQL: ${health.logger.postgresql || "N/A"}`,
       icon: Database,
     },
   ];
@@ -156,67 +166,20 @@ function DashboardPage() {
                 <p className="truncate text-sm font-semibold">{s.label}</p>
                 <p className="truncate text-xs text-muted-foreground">{s.detail}</p>
               </div>
-              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-success/40 bg-success/10 px-2.5 py-1 text-xs font-semibold text-success">
-                <span className="size-1.5 rounded-full bg-success" />
+              <span className={cn(
+                "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold",
+                s.status === "UP" ? "border-success/40 bg-success/10 text-success" : "border-danger/40 bg-danger/10 text-danger"
+              )}>
+                <span className={cn(
+                  "size-1.5 rounded-full",
+                  s.status === "UP" ? "bg-success" : "bg-danger"
+                )} />
                 {s.status}
               </span>
             </div>
           </motion.div>
         ))}
       </div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 18 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.45, duration: 0.4 }}
-        className="glass rounded-2xl p-5"
-      >
-        <div className="mb-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-          <div className="min-w-0">
-            <h2 className="truncate text-base font-semibold">Throughput vs fraud signals</h2>
-            <p className="truncate text-xs text-muted-foreground">
-              Streaming window · last 60 minutes
-            </p>
-          </div>
-          <span className="shrink-0 rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
-            Live
-          </span>
-        </div>
-        <div className="h-72 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={analytics?.perMinute ?? []}>
-              <defs>
-                <linearGradient id="gTx" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.55} />
-                  <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="gFraud" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--color-danger)" stopOpacity={0.55} />
-                  <stop offset="100%" stopColor="var(--color-danger)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid stroke="var(--color-border)" vertical={false} />
-              <XAxis dataKey="t" stroke="var(--color-muted-foreground)" fontSize={11} tickLine={false} />
-              <YAxis stroke="var(--color-muted-foreground)" fontSize={11} tickLine={false} />
-              <Tooltip {...chartTooltip} />
-              <Area
-                type="monotone"
-                dataKey="transactions"
-                stroke="var(--color-primary)"
-                fill="url(#gTx)"
-                strokeWidth={2}
-              />
-              <Area
-                type="monotone"
-                dataKey="fraud"
-                stroke="var(--color-danger)"
-                fill="url(#gFraud)"
-                strokeWidth={2}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      </motion.div>
     </div>
   );
 }

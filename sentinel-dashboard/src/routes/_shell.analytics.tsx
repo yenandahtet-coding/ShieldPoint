@@ -18,7 +18,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { api } from "@/lib/api";
+import { metricsService } from "@/services/metricsService";
 import { CardSkeleton } from "@/components/skeletons";
 import { CHART_COLORS, chartTooltip } from "@/components/chart-theme";
 
@@ -69,7 +69,7 @@ function Panel({
 }
 
 function AnalyticsPage() {
-  const { data, isLoading } = useQuery({ queryKey: ["analytics"], queryFn: api.getAnalytics });
+  const { data, isLoading } = useQuery({ queryKey: ["analytics"], queryFn: metricsService.getMetrics });
   if (isLoading || !data) return <CardSkeleton count={6} />;
 
   const axis = { stroke: "var(--color-muted-foreground)", fontSize: 11, tickLine: false } as const;
@@ -122,7 +122,7 @@ function AnalyticsPage() {
             <YAxis {...axis} />
             <Tooltip {...chartTooltip} />
             <Bar dataKey="count" radius={[8, 8, 0, 0]}>
-              {data.riskDistribution.map((_, i) => (
+              {data.riskDistribution?.map((_, i) => (
                 <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
               ))}
             </Bar>
@@ -144,7 +144,7 @@ function AnalyticsPage() {
               paddingAngle={3}
               stroke="none"
             >
-              {data.categories.map((_, i) => (
+              {data.categories?.map((_, i) => (
                 <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
               ))}
             </Pie>

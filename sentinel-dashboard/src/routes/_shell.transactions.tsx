@@ -12,8 +12,7 @@ import {
   Search,
 } from "lucide-react";
 import { toast } from "sonner";
-import { api } from "@/lib/api";
-import type { Transaction, TxStatus } from "@/lib/mock";
+import { loggerService, type TransactionRecord } from "@/services/loggerService";
 import { RiskMeter, StatusBadge } from "@/components/status-badge";
 import { TableSkeleton } from "@/components/skeletons";
 import { TransactionDetailsModal } from "@/components/transaction-details-modal";
@@ -39,37 +38,26 @@ export const Route = createFileRoute("/_shell/transactions")({
   component: TransactionsPage,
 });
 
-const PAGE_SIZE = 12;
-type SortKey = "timestamp" | "amount" | "riskScore";
+type SortKey = "created_at" | "amount" | "riskScore";
 
 function TransactionsPage() {
-  const { data, isLoading } = useQuery({ queryKey: ["transactions"], queryFn: () => api.getTransactions(60) });
-  const [rows, setRows] = useState<Transaction[]>([]);
+  const [page, setPage] = useState(1);
   const [live, setLive] = useState(true);
+  
+  // Refetch every 3s if live is enabled
+  const { data: rows = [], isLoading } = useQuery({ 
+    queryKey: ["transactions", page], 
+    queryFn: () => loggerService.getTransactions(page, 20),
+    refetchInterval: live ? 3000 : false
+  });
+
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<TxStatus | "All">("All");
+  const [status, setStatus] = useState<string | "All">("All");
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({
-    key: "timestamp",
+    key: "created_at",
     dir: "desc",
   });
-  const [page, setPage] = useState(1);
-  const [selected, setSelected] = useState<Transaction | null>(null);
-  const [flash, setFlash] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (data) setRows(data);
-  }, [data]);
-
-  useEffect(() => {
-    if (!live) return;
-    const id = setInterval(async () => {
-      const tx = await api.postTransaction();
-      setFlash(tx.id);
-      setRows((r) => [tx, ...r].slice(0, 200));
-      if (tx.status === "Fraud") toast.error(`Fraud blocked · ${tx.customer} · ${tx.id}`);
-    }, 3200);
-    return () => clearInterval(id);
-  }, [live]);
+  const [selected, setSelected] = useState<TransactionRecord | null>(null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -77,21 +65,18 @@ function TransactionsPage() {
       (t) =>
         (status === "All" || t.status === status) &&
         (!q ||
-          [t.id, t.customer, t.merchant, t.location, t.country].some((f) =>
+          [t.transaction_id, t.sender_id].some((f) =>
             f.toLowerCase().includes(q),
           )),
     );
     return out.sort((a, b) => {
       const dir = sort.dir === "asc" ? 1 : -1;
-      if (sort.key === "timestamp")
-        return (new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()) * dir;
-      return (a[sort.key] - b[sort.key]) * dir;
+      if (sort.key === "created_at")
+        return (new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) * dir;
+      // We don't have riskScore in postgres logger yet, so fallback to amount for now
+      return ((a as any)[sort.key] || 0 - (b as any)[sort.key] || 0) * dir;
     });
   }, [rows, query, status, sort]);
-
-  const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const current = Math.min(page, pages);
-  const slice = filtered.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
 
   const toggleSort = (key: SortKey) =>
     setSort((s) => ({ key, dir: s.key === key && s.dir === "desc" ? "asc" : "desc" }));
@@ -108,13 +93,13 @@ function TransactionsPage() {
                 setQuery(e.target.value);
                 setPage(1);
               }}
-              placeholder="Search ID, customer, merchant, country…"
+              placeholder="Search ID, sender…"
               className="w-full bg-transparent py-2.5 text-sm outline-hidden placeholder:text-muted-foreground"
             />
           </div>
 
           <div className="flex shrink-0 gap-1 rounded-xl border border-border bg-surface-2/50 p-1">
-            {(["All", "Approved", "Review", "Fraud"] as const).map((s) => (
+            {(["All", "ACCEPTED", "DECLINED"] as const).map((s) => (
               <button
                 key={s}
                 onClick={() => {
@@ -163,28 +148,23 @@ function TransactionsPage() {
             <table className="w-full min-w-5xl text-left text-sm">
               <thead className="border-b border-border text-xs uppercase tracking-wider text-muted-foreground">
                 <tr>
-                  <th className="px-4 py-3 font-medium">Transaction</th>
-                  <th className="px-4 py-3 font-medium">Customer</th>
-                  <th className="px-4 py-3 font-medium">Account</th>
+                  <th className="px-4 py-3 font-medium">Transaction ID</th>
+                  <th className="px-4 py-3 font-medium">Sender</th>
+                  <th className="px-4 py-3 font-medium">Receiver</th>
                   <th className="px-4 py-3 font-medium">
                     <SortBtn label="Amount" onClick={() => toggleSort("amount")} />
                   </th>
-                  <th className="px-4 py-3 font-medium">Location</th>
-                  <th className="px-4 py-3 font-medium">Merchant</th>
                   <th className="px-4 py-3 font-medium">
-                    <SortBtn label="Time" onClick={() => toggleSort("timestamp")} />
-                  </th>
-                  <th className="px-4 py-3 font-medium">
-                    <SortBtn label="Risk" onClick={() => toggleSort("riskScore")} />
+                    <SortBtn label="Time" onClick={() => toggleSort("created_at")} />
                   </th>
                   <th className="px-4 py-3 font-medium">Status</th>
                 </tr>
               </thead>
               <tbody>
                 <AnimatePresence initial={false}>
-                  {slice.map((t) => (
+                  {filtered.map((t) => (
                     <motion.tr
-                      key={t.id}
+                      key={t.transaction_id}
                       layout
                       initial={{ opacity: 0, y: -12, backgroundColor: "rgba(56,189,248,0.14)" }}
                       animate={{ opacity: 1, y: 0, backgroundColor: "rgba(0,0,0,0)" }}
@@ -192,28 +172,20 @@ function TransactionsPage() {
                       transition={{ duration: 0.5 }}
                       onClick={() => setSelected(t)}
                       className={cn(
-                        "cursor-pointer border-b border-border/60 transition-colors hover:bg-accent/50",
-                        flash === t.id && "font-medium",
+                        "cursor-pointer border-b border-border/60 transition-colors hover:bg-accent/50"
                       )}
                     >
-                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{t.id}</td>
-                      <td className="whitespace-nowrap px-4 py-3 font-medium">{t.customer}</td>
-                      <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-muted-foreground">{t.account}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{t.transaction_id.substring(0,8)}...</td>
+                      <td className="whitespace-nowrap px-4 py-3 font-mono text-xs">{t.sender_id.substring(0,8)}...</td>
+                      <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-muted-foreground">{t.receiver_phone || "N/A"}</td>
                       <td className="whitespace-nowrap px-4 py-3 tabular-nums">
                         {fmtMoney(t.amount, t.currency)}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
-                        {t.location}, {t.country}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{t.merchant}</td>
                       <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-muted-foreground">
-                        {fmtTime(t.timestamp)}
+                        {fmtTime(t.created_at)}
                       </td>
                       <td className="px-4 py-3">
-                        <RiskMeter score={t.riskScore} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <StatusBadge status={t.status} />
+                        <StatusBadge status={t.status === "ACCEPTED" ? "Approved" : "Fraud"} />
                       </td>
                     </motion.tr>
                   ))}
@@ -225,23 +197,23 @@ function TransactionsPage() {
 
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-t border-border px-4 py-3">
           <p className="truncate text-xs text-muted-foreground">
-            Showing {slice.length} of {filtered.length} transactions
+            Showing page {page} ({rows.length} loaded)
           </p>
           <div className="flex shrink-0 items-center gap-2">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={current === 1}
+              disabled={page === 1}
               className="rounded-lg border border-border p-1.5 disabled:opacity-40"
               aria-label="Previous page"
             >
               <ChevronLeft className="size-4" />
             </button>
             <span className="text-xs tabular-nums text-muted-foreground">
-              {current} / {pages}
+              Page {page}
             </span>
             <button
-              onClick={() => setPage((p) => Math.min(pages, p + 1))}
-              disabled={current === pages}
+              onClick={() => setPage((p) => p + 1)}
+              disabled={rows.length < 20}
               className="rounded-lg border border-border p-1.5 disabled:opacity-40"
               aria-label="Next page"
             >
@@ -251,7 +223,7 @@ function TransactionsPage() {
         </div>
       </div>
 
-      <TransactionDetailsModal tx={selected} onClose={() => setSelected(null)} />
+      <TransactionDetailsModal tx={selected as any} onClose={() => setSelected(null)} />
     </div>
   );
 }

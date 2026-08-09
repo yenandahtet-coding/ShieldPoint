@@ -10,7 +10,7 @@ class LargeAmountRule(FraudRule):
         return "Transaction amount > 5,000,000 MMK"
         
     def evaluate(self, event: TransactionCreatedEvent) -> Tuple[int, bool]:
-        if event.payload.amount > 5000000:
+        if event.payload.amount >= 5000000:
             return 40, True
         return 0, False
 

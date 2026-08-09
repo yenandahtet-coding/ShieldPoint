@@ -4,12 +4,11 @@ import { AnimatePresence, motion } from "motion/react";
 import { useMemo, useState } from "react";
 import { Eye, MapPin, Search, Snowflake, CheckCheck, Clock } from "lucide-react";
 import { toast } from "sonner";
-import { api } from "@/lib/api";
-import type { Transaction } from "@/lib/mock";
+import { fraudService, type FraudRecord } from "@/services/fraudService";
 import { RiskMeter, StatusBadge } from "@/components/status-badge";
 import { CardSkeleton } from "@/components/skeletons";
 import { TransactionDetailsModal } from "@/components/transaction-details-modal";
-import { fmtMoney, fmtDateTime } from "@/lib/format";
+import { fmtDateTime } from "@/lib/format";
 
 export const Route = createFileRoute("/_shell/frauds")({
   head: () => ({
@@ -31,15 +30,21 @@ export const Route = createFileRoute("/_shell/frauds")({
 });
 
 function FraudsPage() {
-  const { data, isLoading } = useQuery({ queryKey: ["frauds"], queryFn: api.getFrauds });
+  const [page, setPage] = useState(1);
+  const { data, isLoading } = useQuery({ 
+    queryKey: ["frauds", page], 
+    queryFn: () => fraudService.getFrauds(page, 20),
+    refetchInterval: 5000 
+  });
   const [query, setQuery] = useState("");
   const [reviewed, setReviewed] = useState<string[]>([]);
-  const [selected, setSelected] = useState<Transaction | null>(null);
+  const [selected, setSelected] = useState<FraudRecord | null>(null);
 
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return (data ?? []).filter(
-      (t) => !q || [t.customer, t.country, t.reason].some((f) => f.toLowerCase().includes(q)),
+    const safeData = Array.isArray(data) ? data : [];
+    return safeData.filter(
+      (t) => !q || [t.sender_id, t.risk_level, t.transaction_id].some((f) => f?.toLowerCase().includes(q)),
     );
   }, [data, query]);
 
@@ -53,7 +58,7 @@ function FraudsPage() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Filter by customer, country or trigger reason…"
+            placeholder="Filter by sender or ID…"
             className="w-full bg-transparent py-2.5 text-sm outline-hidden placeholder:text-muted-foreground"
           />
         </div>
@@ -66,7 +71,7 @@ function FraudsPage() {
         <AnimatePresence initial={false}>
           {list.map((t, i) => (
             <motion.article
-              key={t.id}
+              key={t.fraud_id}
               layout
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -76,30 +81,28 @@ function FraudsPage() {
             >
               <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                 <div className="min-w-0">
-                  <p className="font-mono text-[11px] text-muted-foreground">{t.id}</p>
-                  <h3 className="truncate text-base font-semibold">{t.customer}</h3>
+                  <p className="font-mono text-[11px] text-muted-foreground">{t.transaction_id.substring(0,12)}...</p>
+                  <h3 className="truncate font-mono text-base font-semibold">{t.sender_id.substring(0,8)}...</h3>
                 </div>
-                <StatusBadge status={t.status} />
+                <StatusBadge status={"Fraud"} />
               </div>
-
-              <p className="mt-3 font-display text-2xl font-bold">{fmtMoney(t.amount, t.currency)}</p>
 
               <div className="mt-3 space-y-1.5 text-xs text-muted-foreground">
                 <p className="flex items-center gap-1.5">
-                  <MapPin className="size-3.5 shrink-0" /> {t.location}, {t.country}
+                  <Clock className="size-3.5 shrink-0" /> {fmtDateTime(t.timestamp)}
                 </p>
                 <p className="flex items-center gap-1.5">
-                  <Clock className="size-3.5 shrink-0" /> {fmtDateTime(t.timestamp)}
+                  <MapPin className="size-3.5 shrink-0" /> Correlation: {t.correlation_id.substring(0,8)}
                 </p>
               </div>
 
               <div className="mt-3 rounded-xl border border-warning/30 bg-warning/8 px-3 py-2 text-xs text-warning">
-                {t.reason}
+                Triggered Rules: {t.triggered_rules.join(", ")}
               </div>
 
               <div className="mt-4 flex items-center justify-between gap-3">
-                <span className="text-xs text-muted-foreground">Risk</span>
-                <RiskMeter score={t.riskScore} />
+                <span className="text-xs text-muted-foreground">Risk Score</span>
+                <RiskMeter score={t.risk_score} />
               </div>
 
               <div className="mt-4 flex flex-wrap gap-2">
@@ -111,17 +114,17 @@ function FraudsPage() {
                 </button>
                 <button
                   onClick={() => {
-                    setReviewed((r) => [...r, t.id]);
-                    toast.success(`${t.id} marked reviewed`);
+                    setReviewed((r) => [...r, t.fraud_id]);
+                    toast.success(`${t.fraud_id.substring(0,8)} marked reviewed`);
                   }}
-                  disabled={reviewed.includes(t.id)}
+                  disabled={reviewed.includes(t.fraud_id)}
                   className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-success/15 px-3 py-2 text-xs font-semibold text-success hover:bg-success/25 disabled:opacity-50"
                 >
                   <CheckCheck className="size-3.5" />
-                  {reviewed.includes(t.id) ? "Reviewed" : "Mark reviewed"}
+                  {reviewed.includes(t.fraud_id) ? "Reviewed" : "Mark reviewed"}
                 </button>
                 <button
-                  onClick={() => toast.warning(`Account ${t.account} frozen for ${t.customer}`)}
+                  onClick={() => toast.warning(`Account frozen for ${t.sender_id}`)}
                   className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-danger/15 px-3 py-2 text-xs font-semibold text-danger hover:bg-danger/25"
                 >
                   <Snowflake className="size-3.5" /> Freeze
@@ -132,7 +135,7 @@ function FraudsPage() {
         </AnimatePresence>
       </div>
 
-      <TransactionDetailsModal tx={selected} onClose={() => setSelected(null)} />
+      <TransactionDetailsModal tx={selected as any} onClose={() => setSelected(null)} />
     </div>
   );
 }

@@ -37,11 +37,11 @@ function HistoryPage() {
     () =>
       transactions.filter((t) => {
         if (filter === "Outgoing") return t.senderId === user.id;
-        if (filter === "Incoming") return t.receiverId === user.id;
+        if (filter === "Incoming") return t.receiverPhone === user.phone || t.type === "RECEIVED";
         if (filter === "Flagged") return t.status === "FLAGGED" || t.status === "PENDING";
         return true;
       }),
-    [transactions, filter, user.id],
+    [transactions, filter, user.id, user.phone],
   );
 
   return (
@@ -116,10 +116,10 @@ function HistoryPage() {
 
               <p
                 className={`num mt-6 text-center text-4xl font-semibold ${
-                  selected.receiverId === user.id ? "text-success" : "text-foreground"
+                  (selected.receiverPhone === user.phone || selected.type === "RECEIVED") ? "text-success" : "text-foreground"
                 }`}
               >
-                {selected.receiverId === user.id ? "+" : "−"}
+                {(selected.receiverPhone === user.phone || selected.type === "RECEIVED") ? "+" : "−"}
                 {format(selected.amount)}
               </p>
               <div className="mt-3 flex justify-center">

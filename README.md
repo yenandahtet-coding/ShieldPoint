@@ -55,7 +55,16 @@ pip install -r requirements.txt
 cd ..
 ```
 
-**4. Install Frontend Dependencies**
+**4. Install Wallet Service Dependencies**
+```powershell
+cd wallet-service
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+cd ..
+```
+
+**5. Install Frontend Dependencies**
 ```powershell
 cd swift-glass-pay
 npm install
@@ -100,8 +109,15 @@ cd fraud-service
 uvicorn app.main:app --host 0.0.0.0 --port 8002
 ```
 
+**Terminal 4: Wallet Service**
+```powershell
+cd wallet-service
+.\venv\Scripts\Activate.ps1
+python main.py
+```
+
 ### Step 3: Start the Frontend
-Open a **fourth terminal window** for the React application:
+Open a **fifth terminal window** for the React application:
 ```powershell
 cd swift-glass-pay
 npm run dev

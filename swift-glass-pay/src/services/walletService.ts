@@ -27,29 +27,46 @@ export const walletService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("User not authenticated");
 
+    // Fetch user's phone to check received transactions by phone
+    const { data: profile } = await supabase.from('profiles').select('phone').eq('id', user.id).single();
+    const userPhone = profile?.phone || 'NO_PHONE';
+
     const { data, error } = await supabase
       .from('transactions')
       .select(`
         *,
-        sender:profiles!sender_id(name, phone),
-        receiver:profiles!receiver_id(name, phone)
+        sender:profiles!sender_id(name, phone)
       `)
-      .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+      .or(`sender_id.eq.${user.id},receiver_phone.eq.${userPhone}`)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
 
+    // Collect unique receiver phones that are not the current user
+    const receiverPhones = [...new Set(data.map(t => t.receiver_phone).filter(p => p && p !== userPhone))];
+    
+    // Fetch profiles for these phones
+    const { data: receiverProfiles } = await supabase
+      .from('profiles')
+      .select('name, phone')
+      .in('phone', receiverPhones);
+      
+    // Create a lookup map for receiver names
+    const phoneToName = Object.fromEntries(
+      (receiverProfiles || []).map(p => [p.phone, p.name])
+    );
+
     return data.map((t: any) => ({
-      id: t.id,
+      id: t.transaction_id || t.id,
       senderId: t.sender_id,
       senderPhone: t.sender?.phone,
       senderName: t.sender?.name || "Wallet User",
-      receiverId: t.receiver_id,
-      receiverPhone: t.receiver?.phone,
-      receiverName: t.receiver?.name || "Wallet User",
+      receiverId: t.receiver_phone,
+      receiverPhone: t.receiver_phone,
+      receiverName: t.receiver_phone === userPhone ? "Me" : (phoneToName[t.receiver_phone] || t.receiver_phone || "Wallet User"),
       amount: Number(t.amount),
       currency: t.currency,
-      type: t.type,
+      type: t.sender_id === user.id ? "TRANSFER" : "RECEIVED",
       status: t.status,
       timestamp: t.created_at,
       note: t.note,

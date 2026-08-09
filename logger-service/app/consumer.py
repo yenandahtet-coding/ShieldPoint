@@ -37,7 +37,7 @@ class KafkaConsumerWorker:
     def _consume_loop(self):
         try:
             self.consumer = Consumer(self.conf)
-            self.consumer.subscribe(['transactions'])
+            self.consumer.subscribe(['transactions', 'fraud-alerts'])
             self.is_connected = True
             logger.info("Kafka Connected. Listening to 'transactions'...")
             
