@@ -21,6 +21,7 @@ class TransactionPayload(BaseModel):
     merchantId: Optional[str] = None
     amount: float
     note: Optional[str] = None
+    location: Optional[str] = None
 
 class TransactionCreatedEvent(BaseEvent):
     # Overriding to allow incoming source from api-service

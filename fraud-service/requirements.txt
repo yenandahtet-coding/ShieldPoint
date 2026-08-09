@@ -6,3 +6,4 @@ pydantic-settings>=2.0.0
 confluent-kafka>=2.3.0
 motor>=3.3.2
 certifi>=2024.7.4
+dnspython>=2.6.0

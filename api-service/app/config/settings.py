@@ -7,6 +7,8 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql://user:password@localhost/dbname"
     KAFKA_BOOTSTRAP_SERVERS: str = "localhost:9092"
     ENVIRONMENT: str = "development"
+    MONGODB_URL: str = ""
+    MONGODB_DB_NAME: str = "nova_fraud"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

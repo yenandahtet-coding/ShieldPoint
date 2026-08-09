@@ -32,8 +32,8 @@ export const Route = createFileRoute("/_shell/alerts")({
 const FILTERS = ["All", "Critical", "High", "Medium", "Low"] as const;
 
 function AlertsPage() {
-  const { data, isLoading } = useQuery({ 
-    queryKey: ["alerts"], 
+  const { data, isLoading } = useQuery({
+    queryKey: ["alerts"],
     queryFn: () => notificationService.getHistory(),
     refetchInterval: 5000
   });
@@ -46,7 +46,7 @@ function AlertsPage() {
       id: n.notificationId,
       type: "Fraud Alert Dispatch",
       message: `Notification dispatched for transaction: ${n.transactionId}`,
-      severity: "High" as const,
+      severity: (n.severity || "High") as "Critical" | "High" | "Medium" | "Low",
       time: n.timestamp,
       status: n.status
     }));
@@ -117,7 +117,7 @@ function AlertsPage() {
                   <p className="truncate text-sm font-semibold">{a.type}</p>
                   <p className="truncate text-xs text-muted-foreground">{a.message}</p>
                   <p className="mt-1 font-mono text-[11px] text-muted-foreground">
-                    {a.id.substring(0,8)}... · {fmtDateTime(a.time)}
+                    {a.id.substring(0, 8)}... · {fmtDateTime(a.time)}
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-2 sm:flex-row sm:items-center">

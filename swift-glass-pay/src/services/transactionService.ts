@@ -44,7 +44,8 @@ export const transactionService = {
     const data = await transactionBackendClient.transferMerchant({
       merchantPhone: merchant.phone,
       amount: merchant.amount,
-      note: "Merchant QR payment"
+      note: "Merchant QR payment",
+      pin: "000000"
     });
 
     return {
@@ -65,7 +66,7 @@ export const transactionService = {
 
   async deposit(amount: number, user: UserProfile): Promise<Transaction> {
     if (amount <= 0) throw new Error("Amount must be greater than zero");
-    
+
     await transactionBackendClient.deposit({ amount, method: "BANK_TRANSFER" });
 
     return {
@@ -87,7 +88,7 @@ export const transactionService = {
   async withdraw(amount: number, user: UserProfile): Promise<Transaction> {
     if (amount <= 0) throw new Error("Amount must be greater than zero");
     if (amount > user.balance) throw new Error("Insufficient balance");
-    
+
     await transactionBackendClient.withdraw({ amount, method: "BANK_TRANSFER" });
 
     return {
