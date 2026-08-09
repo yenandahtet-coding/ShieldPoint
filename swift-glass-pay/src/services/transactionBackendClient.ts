@@ -18,7 +18,7 @@ const api = axios.create({
 });
 
 export const transactionBackendClient = {
-  async transfer(payload: { recipientPhone: string; amount: number; pin: string; note?: string }): Promise<{ id: string, receiver_id: string } | null> {
+  async transfer(payload: { recipientPhone: string; amount: number; pin: string; note?: string | undefined }): Promise<{ id: string, receiver_id: string } | null> {
     // 1. Get current authenticated user
     const { data: { user: authUser } } = await supabase.auth.getUser();
     if (!authUser || !authUser.email) throw new Error("Not authenticated");
@@ -42,8 +42,8 @@ export const transactionBackendClient = {
       throw new Error(error.message || "Failed to process transfer");
     }
   },
-  
-  async transferMerchant(payload: { merchantPhone: string; amount: number; note?: string; pin: string }): Promise<{ id: string, receiver_id: string } | null> {
+
+  async transferMerchant(payload: { merchantPhone: string; amount: number; note?: string | undefined; pin: string }): Promise<{ id: string, receiver_id: string } | null> {
     const { data: { user: authUser } } = await supabase.auth.getUser();
     if (!authUser || !authUser.email) throw new Error("Not authenticated");
 

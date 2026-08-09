@@ -8,7 +8,8 @@ class MongoDBClient:
         self.db = None
 
     def connect(self):
-        self.client = AsyncIOMotorClient(settings.MONGODB_URL, tlsCAFile=certifi.where())
+        mongo_url = settings.MONGODB_URL.strip(" \r\n\"'")
+        self.client = AsyncIOMotorClient(mongo_url, tlsCAFile=certifi.where())
         self.db = self.client[settings.MONGODB_DB_NAME]
 
     def close(self):

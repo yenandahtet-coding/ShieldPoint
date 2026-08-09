@@ -17,17 +17,17 @@ export interface Transaction {
   receiverName: string;
   amount: number;
   currency: string;
-  type: "PHONE_NUMBER" | "MERCHANT_QR";
+  type: "PHONE_NUMBER" | "MERCHANT_QR" | "TRANSFER" | "RECEIVED" | "DEPOSIT" | "WITHDRAW";
   status: "COMPLETED" | "PENDING" | "FAILED" | "FLAGGED";
   timestamp: string;
-  note?: string;
+  note?: string | undefined;
 }
 
 export interface PaymentRequest {
   recipientPhone: string;
   amount: number;
   pin: string;
-  note?: string;
+  note?: string | undefined;
 }
 
 export interface Contact {

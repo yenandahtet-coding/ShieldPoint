@@ -44,13 +44,13 @@ export const walletService = {
 
     // Collect unique receiver phones that are not the current user
     const receiverPhones = [...new Set(data.map(t => t.receiver_phone).filter(p => p && p !== userPhone))];
-    
+
     // Fetch profiles for these phones
     const { data: receiverProfiles } = await supabase
       .from('profiles')
       .select('name, phone')
       .in('phone', receiverPhones);
-      
+
     // Create a lookup map for receiver names
     const phoneToName = Object.fromEntries(
       (receiverProfiles || []).map(p => [p.phone, p.name])
@@ -59,11 +59,11 @@ export const walletService = {
     return data.map((t: any) => ({
       id: t.transaction_id || t.id,
       senderId: t.sender_id,
-      senderPhone: t.sender?.phone,
-      senderName: t.sender?.name || "Wallet User",
+      senderPhone: t.sender_id === user.id ? userPhone : t.sender?.phone,
+      senderName: t.sender_id === user.id ? "Me" : (t.sender?.name || "Unknown Sender"),
       receiverId: t.receiver_phone,
       receiverPhone: t.receiver_phone,
-      receiverName: t.receiver_phone === userPhone ? "Me" : (phoneToName[t.receiver_phone] || t.receiver_phone || "Wallet User"),
+      receiverName: t.receiver_phone === userPhone ? "Me" : (phoneToName[t.receiver_phone] || t.receiver_phone || "Unknown User"),
       amount: Number(t.amount),
       currency: t.currency,
       type: t.sender_id === user.id ? "TRANSFER" : "RECEIVED",

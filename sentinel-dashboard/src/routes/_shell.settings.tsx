@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "motion/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Save, Server, Shield, Database, Radio, Bell, Moon, Sun, Layers } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
+import { getBackendUrl, setBackendUrl } from "@/lib/api";
 
 export const Route = createFileRoute("/_shell/settings")({
   head: () => ({

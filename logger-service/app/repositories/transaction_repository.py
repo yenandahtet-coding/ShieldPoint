@@ -32,12 +32,15 @@ class TransactionRepository:
         ).on_conflict_do_nothing(index_elements=['transaction_id'])
         
         try:
+            from sqlalchemy import text
             result = self.db.execute(stmt)
-            self.db.commit()
             if result.rowcount > 0:
-                logger.info(f"Transaction Saved: {payload.transactionId}")
+                self.db.execute(text("UPDATE profiles SET balance = balance - :a WHERE id = :u"), {"a": payload.amount, "u": payload.senderId})
+                self.db.commit()
+                logger.info(f"Transaction Saved and Balance Deducted: {payload.transactionId}")
                 return True
             else:
+                self.db.commit()
                 logger.info(f"Duplicate transaction ignored: {payload.transactionId}")
                 return False
         except (IntegrityError, Exception) as e:

@@ -8,6 +8,7 @@ class TransactionRequest(BaseModel):
     amount: float = Field(..., gt=0)
     note: Optional[str] = None
     pin: Optional[str] = None
+    location: Optional[str] = None
 
 class TransactionResponse(BaseModel):
     transactionId: str

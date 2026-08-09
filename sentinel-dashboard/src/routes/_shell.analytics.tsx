@@ -122,7 +122,7 @@ function AnalyticsPage() {
             <YAxis {...axis} />
             <Tooltip {...chartTooltip} />
             <Bar dataKey="count" radius={[8, 8, 0, 0]}>
-              {data.riskDistribution?.map((_, i) => (
+              {data.riskDistribution?.map((_: any, i: number) => (
                 <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
               ))}
             </Bar>
@@ -144,7 +144,7 @@ function AnalyticsPage() {
               paddingAngle={3}
               stroke="none"
             >
-              {data.categories?.map((_, i) => (
+              {data.categories?.map((_: any, i: number) => (
                 <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
               ))}
             </Pie>
