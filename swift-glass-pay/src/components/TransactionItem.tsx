@@ -12,7 +12,7 @@ export function TransactionItem({
   onClick?: () => void;
 }) {
   const { user, format } = useWallet();
-  const isCredit = tx.receiverId === user.id;
+  const isCredit = tx.type === "RECEIVED" || tx.receiverPhone === user.phone;
   const counterparty = isCredit ? tx.senderName : tx.receiverName;
 
   return (
@@ -40,7 +40,7 @@ export function TransactionItem({
       <span className="min-w-0">
         <span className="flex min-w-0 items-center gap-2">
           <span className="truncate text-sm font-medium">
-            {isCredit ? `From ${tx.senderPhone}` : counterparty}
+            {isCredit ? `From ${tx.senderName || tx.senderPhone}` : counterparty}
           </span>
           <StatusBadge status={tx.status} />
         </span>

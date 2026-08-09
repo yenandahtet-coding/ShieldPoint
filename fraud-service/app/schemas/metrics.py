@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import List, Dict, Any
 
 class MetricsResponse(BaseModel):
     events_received: int
@@ -6,3 +7,5 @@ class MetricsResponse(BaseModel):
     low_risk: int
     medium_risk: int
     high_risk: int
+    risk_distribution: List[Dict[str, Any]] = []
+    fraud_trend: List[Dict[str, Any]] = []

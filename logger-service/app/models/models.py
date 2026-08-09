@@ -7,7 +7,7 @@ class TransactionRecord(Base):
     __tablename__ = "transactions"
 
     transaction_id = Column(UUID(as_uuid=True), primary_key=True, index=True)
-    sender_id = Column(String, nullable=False, index=True)
+    sender_id = Column(UUID(as_uuid=True), nullable=False, index=True)
     receiver_phone = Column(String, nullable=True)
     amount = Column(Float, nullable=False)
     currency = Column(String, default="MMK")

@@ -25,6 +25,14 @@ class EventHandler:
             data = json.loads(message_value.decode('utf-8'))
             logger.info("Event Received")
             
+            event_type = data.get("eventType")
+            
+            if event_type == "FRAUD_DETECTED":
+                transaction_id = data.get("payload", {}).get("transactionId")
+                if transaction_id:
+                    self.repository.update_status(transaction_id, "DECLINED") # Changed from FLAGGED to DECLINED per UI image 1 which shows ACCEPTED/DECLINED
+                return True
+                
             # Validate Event
             event = TransactionCreatedEvent(**data)
             

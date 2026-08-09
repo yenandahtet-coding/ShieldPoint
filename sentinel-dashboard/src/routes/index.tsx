@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 import { useState } from "react";
 import { Eye, EyeOff, Landmark, Lock, ShieldCheck, User } from "lucide-react";
 import { toast } from "sonner";
-import { api } from "@/lib/api";
+import { auth } from "@/lib/auth";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -26,8 +26,8 @@ export const Route = createFileRoute("/")({
 
 function LoginPage() {
   const navigate = useNavigate();
-  const [username, setUsername] = useState("analyst");
-  const [password, setPassword] = useState("nordvault");
+  const [username, setUsername] = useState("admin");
+  const [password, setPassword] = useState("admin");
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -39,7 +39,7 @@ function LoginPage() {
     }
     setLoading(true);
     try {
-      await api.login(username, password);
+      await auth.login(username, password);
       toast.success("Authenticated — opening operations console");
       navigate({ to: "/dashboard" });
     } catch {
@@ -166,7 +166,7 @@ function LoginPage() {
           </button>
 
           <p className="mt-6 text-center text-xs text-muted-foreground">
-            Demo environment — any credentials are accepted.
+            Demo environment — Use admin / admin to sign in.
           </p>
         </motion.form>
       </div>

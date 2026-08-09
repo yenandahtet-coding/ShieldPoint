@@ -1,18 +1,22 @@
+import { ShieldCheck, ShieldAlert, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { TxStatus } from "@/lib/mock";
 
-const styles: Record<TxStatus, string> = {
-  Approved: "border-success/40 bg-success/12 text-success",
-  Review: "border-warning/40 bg-warning/12 text-warning",
-  Fraud: "border-danger/45 bg-danger/14 text-danger",
+const statusMap: Record<string, { color: string; icon: React.ElementType }> = {
+  Approved: { color: "border-success/40 bg-success/12 text-success", icon: ShieldCheck },
+  Review: { color: "border-warning/40 bg-warning/12 text-warning", icon: Clock },
+  Fraud: { color: "border-danger/45 bg-danger/14 text-danger", icon: ShieldAlert },
 };
 
-export function StatusBadge({ status, className }: { status: TxStatus; className?: string }) {
+export function StatusBadge({ status, className }: { status: string; className?: string }) {
+  const { color, icon: Icon } = statusMap[status] || {
+    color: "border-border bg-muted text-muted-foreground",
+    icon: ShieldCheck,
+  };
   return (
     <span
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold tracking-wide",
-        styles[status],
+        color,
         className,
       )}
     >

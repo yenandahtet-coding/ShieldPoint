@@ -45,7 +45,25 @@ cd ..
 **2. Install Logger Service & Fraud Service**
 (Repeat the exact exact virtual-env pattern `python -m venv venv` and `pip install -r requirements.txt` inside both `/logger-service` and `/fraud-service`).
 
-**3. Install Frontend Dependencies**
+**3. Install Fraud Service Dependencies**
+```powershell
+cd fraud-service
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+cd ..
+```
+
+**4. Install Wallet Service Dependencies**
+```powershell
+cd wallet-service
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+cd ..
+```
+
+**5. Install Frontend Dependencies**
 ```powershell
 # Consumer App
 cd swift-glass-pay
@@ -68,7 +86,7 @@ To run this entire distributed system on your local machine, follow these steps 
 1. Open a terminal in the root `ShieldPoint` folder.
 2. Boot Kafka and Zookeeper detached:
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 
 ### Step 2: Start the Microservices
@@ -95,16 +113,23 @@ cd fraud-service
 uvicorn app.main:app --host 0.0.0.0 --port 8002
 ```
 
+**Terminal 4: Wallet Service**
+```powershell
+cd wallet-service
+.\venv\Scripts\Activate.ps1
+python main.py
+```
+
 ### Step 3: Start the Frontends
 Open **two more terminal windows** for the React applications:
 
-**Terminal 4: Consumer Swift Glass Pay**
+**Terminal 5: Consumer Swift Glass Pay**
 ```powershell
 cd swift-glass-pay
 npm run dev
 ```
 
-**Terminal 5: Administrator Sentinel Dashboard**
+**Terminal 6: Administrator Sentinel Dashboard**
 ```powershell
 cd sentinel-dashboard
 npm run dev

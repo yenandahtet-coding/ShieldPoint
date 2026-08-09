@@ -43,7 +43,39 @@ class TransactionRepository:
                 self.db.commit()
                 logger.info(f"Duplicate transaction ignored: {payload.transactionId}")
                 return False
+        except (IntegrityError, Exception) as e:
+            from sqlalchemy.exc import DataError, StatementError
+            self.db.rollback()
+            if isinstance(e, (DataError, StatementError)):
+                logger.warning(f"Invalid data format for transaction, skipping. Error: {e}")
+                return False # Return False but don't raise so consumer can commit offset
+            logger.error(f"Error saving transaction: {e}")
+            raise
+
+    def update_status(self, transaction_id: str, status: str) -> bool:
+        from sqlalchemy import update
+        import uuid
+        
+        try:
+            tid_obj = uuid.UUID(str(transaction_id)) if isinstance(transaction_id, str) else transaction_id
+        except ValueError:
+            tid_obj = transaction_id
+            
+        stmt = (
+            update(TransactionRecord)
+            .where(TransactionRecord.transaction_id == tid_obj)
+            .values(status=status)
+        )
+        try:
+            result = self.db.execute(stmt)
+            self.db.commit()
+            if result.rowcount > 0:
+                logger.info(f"Transaction {transaction_id} status updated to {status}")
+                return True
+            else:
+                logger.warning(f"Transaction {transaction_id} not found for status update")
+                return True # True so we can commit offset
         except Exception as e:
             self.db.rollback()
-            logger.error(f"Error saving transaction: {e}")
+            logger.error(f"Error updating transaction status: {e}")
             raise

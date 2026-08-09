@@ -37,7 +37,7 @@ class KafkaConsumerWorker:
     def _consume_loop(self):
         try:
             self.consumer = Consumer(self.conf)
-            self.consumer.subscribe(['transactions'])
+            self.consumer.subscribe(['transactions', 'fraud-alerts'])
             self.is_connected = True
             logger.info("Kafka Connected. Listening to 'transactions'...")
             
@@ -54,6 +54,9 @@ class KafkaConsumerWorker:
                         continue
                     else:
                         logger.error(f"Kafka error: {msg.error()}")
+                        if "UNKNOWN_TOPIC_OR_PART" in str(msg.error()):
+                            time.sleep(2)
+                            continue
                         self.is_connected = False
                         break
                 

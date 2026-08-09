@@ -19,7 +19,7 @@ class KafkaConsumerWorker:
         self.consumer = None
         self.running = False
         self.is_connected = False
-        self.handler = EventHandler()
+        self.handler = None
 
     def start(self):
         self.running = True
@@ -45,6 +45,12 @@ class KafkaConsumerWorker:
             loop.close()
 
     async def _consume_loop(self):
+        # Create thread-local MotorClient bound exactly to THIS thread's asyncio loop!
+        from app.mongodb.database import MongoDBClient
+        self.thread_db_client = MongoDBClient()
+        self.thread_db_client.connect()
+        self.handler = EventHandler(self.thread_db_client)
+        
         try:
             self.consumer = Consumer(self.conf)
             self.consumer.subscribe(['transactions'])
@@ -64,6 +70,9 @@ class KafkaConsumerWorker:
                         continue
                     else:
                         logger.error(f"Kafka error: {msg.error()}")
+                        if "UNKNOWN_TOPIC_OR_PART" in str(msg.error()):
+                            await asyncio.sleep(2)
+                            continue
                         self.is_connected = False
                         break
                 

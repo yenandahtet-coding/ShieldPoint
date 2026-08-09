@@ -40,7 +40,7 @@ function Dashboard() {
     .filter((t) => t.senderId === user.id)
     .reduce((s, t) => s + t.amount, 0);
   const received = transactions
-    .filter((t) => t.receiverId === user.id)
+    .filter((t) => t.type === "RECEIVED" || t.receiverPhone === user.phone)
     .reduce((s, t) => s + t.amount, 0);
 
   return (
