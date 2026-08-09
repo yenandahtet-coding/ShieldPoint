@@ -86,7 +86,7 @@ To run this entire distributed system on your local machine, follow these steps 
 1. Open a terminal in the root `ShieldPoint` folder.
 2. Boot Kafka and Zookeeper detached:
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 
 ### Step 2: Start the Microservices

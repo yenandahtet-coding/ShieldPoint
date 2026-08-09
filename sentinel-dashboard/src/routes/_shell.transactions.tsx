@@ -43,10 +43,10 @@ type SortKey = "created_at" | "amount" | "riskScore";
 function TransactionsPage() {
   const [page, setPage] = useState(1);
   const [live, setLive] = useState(true);
-  
+
   // Refetch every 3s if live is enabled
-  const { data: rows = [], isLoading } = useQuery({ 
-    queryKey: ["transactions", page], 
+  const { data: rows = [], isLoading } = useQuery({
+    queryKey: ["transactions", page],
     queryFn: () => loggerService.getTransactions(page, 20),
     refetchInterval: live ? 3000 : false
   });
@@ -74,7 +74,7 @@ function TransactionsPage() {
       if (sort.key === "created_at")
         return (new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) * dir;
       // We don't have riskScore in postgres logger yet, so fallback to amount for now
-      return ((a as any)[sort.key] || 0 - (b as any)[sort.key] || 0) * dir;
+      return (((a as any)[sort.key] || 0) - ((b as any)[sort.key] || 0)) * dir;
     });
   }, [rows, query, status, sort]);
 
@@ -175,8 +175,8 @@ function TransactionsPage() {
                         "cursor-pointer border-b border-border/60 transition-colors hover:bg-accent/50"
                       )}
                     >
-                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{t.transaction_id.substring(0,8)}...</td>
-                      <td className="whitespace-nowrap px-4 py-3 font-mono text-xs">{t.sender_id.substring(0,8)}...</td>
+                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{t.transaction_id.substring(0, 8)}...</td>
+                      <td className="whitespace-nowrap px-4 py-3 font-mono text-xs">{t.sender_id.substring(0, 8)}...</td>
                       <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-muted-foreground">{t.receiver_phone || "N/A"}</td>
                       <td className="whitespace-nowrap px-4 py-3 tabular-nums">
                         {fmtMoney(t.amount, t.currency)}

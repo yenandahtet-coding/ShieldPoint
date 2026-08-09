@@ -13,8 +13,8 @@ from app.config.topics import KafkaTopics
 logger = logging.getLogger(__name__)
 
 class EventHandler:
-    def __init__(self):
-        self.repository = FraudRepository()
+    def __init__(self, custom_client=None):
+        self.repository = FraudRepository(custom_client)
 
     async def handle_transaction_event(self, message_value: bytes):
         """
