@@ -54,6 +54,9 @@ class KafkaConsumerWorker:
                         continue
                     else:
                         logger.error(f"Kafka error: {msg.error()}")
+                        if "UNKNOWN_TOPIC_OR_PART" in str(msg.error()):
+                            time.sleep(2)
+                            continue
                         self.is_connected = False
                         break
                 

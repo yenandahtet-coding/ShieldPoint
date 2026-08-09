@@ -1,6 +1,8 @@
 import { motion, AnimatePresence } from "motion/react";
 import { AlertTriangle, Snowflake, X } from "lucide-react";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { fraudService } from "@/services/fraudService";
 import { RiskMeter, StatusBadge } from "@/components/status-badge";
 import { fmtDateTime, fmtMoney } from "@/lib/format";
 
@@ -12,17 +14,31 @@ export function TransactionDetailsModal({
   onClose: () => void;
 }) {
   if (!tx) return null;
-  
-  const isFraud = tx.risk_score !== undefined;
+
   const id = tx.transaction_id || tx.id;
+
+  const { data: fraudDetails } = useQuery({
+    queryKey: ["fraud-details", id],
+    queryFn: async () => {
+      try {
+        return await fraudService.getFraud(id);
+      } catch (e) {
+        return null;
+      }
+    },
+    enabled: !!id && !tx.risk_score && (tx.status === "DECLINED" || tx.status === "FLAGGED")
+  });
+
+  const isFraud = tx.risk_score !== undefined || fraudDetails !== undefined && fraudDetails !== null;
   const rawCustomer = tx.sender_id || tx.customer;
   const customer = rawCustomer ? rawCustomer.substring(0, 8) + "..." : "Unknown";
   const status = isFraud ? "Fraud" : (tx.status === "ACCEPTED" ? "Approved" : "Fraud");
   const time = tx.timestamp || tx.created_at;
-  const risk = tx.risk_score || tx.riskScore || 12;
+  const risk = tx.risk_score || tx.riskScore || fraudDetails?.risk_score || 12;
+  const riskLevel = tx.risk_level || fraudDetails?.risk_level;
   const amount = tx.amount || 0;
   const currency = tx.currency || "USD";
-  const rules = tx.triggered_rules || [];
+  const rules = tx.triggered_rules || fraudDetails?.triggered_rules || [];
 
   return (
     <AnimatePresence>
@@ -75,7 +91,7 @@ export function TransactionDetailsModal({
 
               <Section title="Risk analysis">
                 <Row label="Model" value="gbm-fraud-v4.2" mono />
-                {isFraud && <Row label="Risk Level" value={tx.risk_level} />}
+                {isFraud && riskLevel && <Row label="Risk Level" value={riskLevel} />}
                 <div className="flex items-center justify-between gap-3 py-1.5">
                   <span className="text-xs text-muted-foreground">Score</span>
                   <RiskMeter score={risk} />
@@ -110,7 +126,7 @@ export function TransactionDetailsModal({
               </div>
               <div className="flex shrink-0 flex-wrap justify-end gap-2">
                 <button
-                  onClick={() => toast.success(`${id.substring(0,8)} marked reviewed`)}
+                  onClick={() => toast.success(`${id.substring(0, 8)} marked reviewed`)}
                   className="rounded-xl border border-border px-3 py-2 text-xs font-semibold hover:bg-accent"
                 >
                   Mark reviewed

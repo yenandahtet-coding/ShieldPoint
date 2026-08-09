@@ -11,7 +11,7 @@ export interface FraudRecord {
   correlation_id: string;
 }
 
-const client = axios.create({ baseURL: "http://localhost:8002" });
+const client = axios.create({ baseURL: "http://127.0.0.1:8002" });
 
 export const fraudService = {
   async getFrauds(page = 1, limit = 20): Promise<FraudRecord[]> {
@@ -20,7 +20,7 @@ export const fraudService = {
     });
     return data;
   },
-  
+
   async getFraud(transactionId: string): Promise<FraudRecord> {
     const { data } = await client.get<FraudRecord>(`/frauds/${transactionId}`);
     return data;

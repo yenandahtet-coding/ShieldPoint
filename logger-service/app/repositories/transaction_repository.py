@@ -54,9 +54,16 @@ class TransactionRepository:
 
     def update_status(self, transaction_id: str, status: str) -> bool:
         from sqlalchemy import update
+        import uuid
+        
+        try:
+            tid_obj = uuid.UUID(str(transaction_id)) if isinstance(transaction_id, str) else transaction_id
+        except ValueError:
+            tid_obj = transaction_id
+            
         stmt = (
             update(TransactionRecord)
-            .where(TransactionRecord.transaction_id == transaction_id)
+            .where(TransactionRecord.transaction_id == tid_obj)
             .values(status=status)
         )
         try:
