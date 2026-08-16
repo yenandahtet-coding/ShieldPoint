@@ -12,6 +12,7 @@ class TransactionRecord(Base):
     amount = Column(Float, nullable=False)
     currency = Column(String, default="MMK")
     note = Column(String, nullable=True)
+    country = Column(String, nullable=True)
     
     # Tracking fields
     status = Column(String, default="ACCEPTED")

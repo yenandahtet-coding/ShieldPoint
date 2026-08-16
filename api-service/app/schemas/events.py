@@ -21,6 +21,7 @@ class TransactionPayload(BaseModel):
     merchantId: Optional[str] = None
     amount: float
     note: Optional[str] = None
+    country: Optional[str] = None
 
 class TransactionCreatedEvent(BaseEvent):
     payload: TransactionPayload

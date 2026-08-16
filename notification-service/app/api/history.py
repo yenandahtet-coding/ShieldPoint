@@ -16,6 +16,7 @@ class NotificationHistoryItem(BaseModel):
 
 class NotificationHistoryResponse(BaseModel):
     history: List[NotificationHistoryItem]
+    debug_db: str = ""
 
 @router.get("/history", response_model=NotificationHistoryResponse)
 def get_history(db: Session = Depends(get_db)):
@@ -30,4 +31,5 @@ def get_history(db: Session = Depends(get_db)):
         )
         for r in records
     ]
-    return NotificationHistoryResponse(history=history)
+    db_url = str(db.bind.url) if db.bind else "no_bind"
+    return NotificationHistoryResponse(history=history, debug_db=db_url)

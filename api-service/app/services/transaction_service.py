@@ -4,12 +4,52 @@ from app.config.topics import KafkaTopics
 from app.utils.kafka_producer import publish_event
 import uuid
 import logging
+import httpx
+import os
+from fastapi import HTTPException
+from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
 
 class TransactionService:
     @staticmethod
+    def _check_frozen_status(sender_id: str, receiver_phone: str = None):
+        load_dotenv()
+        supabase_url = os.getenv("SUPABASE_URL")
+        supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+        
+        if not supabase_url or not supabase_key:
+            logger.error("Supabase config missing in transaction_service.py")
+            return
+        
+        headers = {
+            "apikey": supabase_key,
+            "Authorization": f"Bearer {supabase_key}",
+        }
+        
+        if sender_id:
+            try:
+                res = httpx.get(f"{supabase_url}/rest/v1/profiles?id=eq.{sender_id}&select=status", headers=headers)
+                if res.status_code == 200 and len(res.json()) > 0:
+                    status = res.json()[0].get("status")
+                    if status == "FROZEN":
+                        raise HTTPException(status_code=403, detail="Sender account is frozen")
+            except httpx.RequestError as e:
+                pass
+
+        if receiver_phone:
+            try:
+                res = httpx.get(f"{supabase_url}/rest/v1/profiles?phone=eq.{receiver_phone}&select=status", headers=headers)
+                if res.status_code == 200 and len(res.json()) > 0:
+                    if res.json()[0].get("status") == "FROZEN":
+                        raise HTTPException(status_code=403, detail="Receiver account is frozen")
+            except httpx.RequestError as e:
+                logger.error(f"Error checking receiver status: {e}")
+
+    @staticmethod
     def _publish_transaction_event(event_type: str, request: TransactionRequest) -> TransactionResponse:
+        TransactionService._check_frozen_status(request.senderId, request.receiverPhone)
+        
         transaction_id = uuid.uuid4()
         correlation_id = uuid.uuid4()
         
@@ -20,7 +60,8 @@ class TransactionService:
             receiverPhone=request.receiverPhone,
             merchantId=request.merchantId,
             amount=request.amount,
-            note=request.note
+            note=request.note,
+            country=request.country
         )
         
         # Build the strictly-typed event envelope

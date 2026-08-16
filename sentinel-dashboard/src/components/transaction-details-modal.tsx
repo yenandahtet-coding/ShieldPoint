@@ -1,8 +1,12 @@
 import { motion, AnimatePresence } from "motion/react";
-import { AlertTriangle, Snowflake, X } from "lucide-react";
+import { AlertTriangle, Snowflake, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fraudService } from "@/services/fraudService";
+import { adminService } from "@/services/adminService";
 import { RiskMeter, StatusBadge } from "@/components/status-badge";
 import { fmtDateTime, fmtMoney } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 export function TransactionDetailsModal({
   tx,
@@ -13,16 +17,58 @@ export function TransactionDetailsModal({
 }) {
   if (!tx) return null;
   
-  const isFraud = tx.risk_score !== undefined;
   const id = tx.transaction_id || tx.id;
   const rawCustomer = tx.sender_id || tx.customer;
-  const customer = rawCustomer ? rawCustomer.substring(0, 8) + "..." : "Unknown";
-  const status = isFraud ? "Fraud" : (tx.status === "ACCEPTED" ? "Approved" : "Fraud");
+  const customerId = rawCustomer || "Unknown";
+  const customerName = rawCustomer ? rawCustomer.substring(0, 8) + "..." : "Unknown";
+
+  const queryClient = useQueryClient();
+
+  const { data: statusData, isLoading: isStatusLoading } = useQuery({
+    queryKey: ["profile-status", customerId],
+    queryFn: () => adminService.getAccountStatus(customerId),
+    enabled: !!customerId && customerId !== "Unknown",
+    retry: false
+  });
+
+  const isFrozen = statusData?.status === "FROZEN";
+
+  const freezeMutation = useMutation({
+    mutationFn: () => isFrozen ? adminService.unfreezeAccount(customerId) : adminService.freezeAccount(customerId),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["profile-status", customerId], data);
+      if (data.status === "FROZEN") {
+        toast.warning(`Account frozen`);
+      } else {
+        toast.success(`Account unfrozen`);
+      }
+    },
+    onError: () => {
+      toast.error(`Failed to change account status`);
+    }
+  });
+
+  const toggleFreeze = () => {
+    if (customerId === "Unknown") return;
+    freezeMutation.mutate();
+  };
+  
+  const isFraudStatus = tx.status && tx.status !== "ACCEPTED" && tx.status !== "COMPLETED";
+  const { data: fraudData } = useQuery({
+    queryKey: ["fraud", id],
+    queryFn: () => fraudService.getFraud(id),
+    enabled: !!id && tx.risk_score === undefined && (isFraudStatus || tx.status === "Fraud"),
+    retry: false
+  });
+  
+  const isFraud = tx.risk_score !== undefined || fraudData !== undefined || isFraudStatus;
+  const status = isFraud ? "Fraud" : "Approved";
   const time = tx.timestamp || tx.created_at;
-  const risk = tx.risk_score || tx.riskScore || 12;
+  const risk = tx.risk_score || fraudData?.risk_score || tx.riskScore || (isFraud ? 85 : 12);
   const amount = tx.amount || 0;
   const currency = tx.currency || "USD";
-  const rules = tx.triggered_rules || [];
+  const rules = tx.triggered_rules || fraudData?.triggered_rules || [];
+  const riskLevel = tx.risk_level || fraudData?.risk_level || "Unknown";
 
   return (
     <AnimatePresence>
@@ -45,7 +91,10 @@ export function TransactionDetailsModal({
             <div className="flex items-center justify-between border-b border-border/50 bg-surface-2/30 px-5 py-4">
               <div className="flex items-center gap-3">
                 <div className="min-w-0">
-                  <h2 className="truncate text-xl font-bold">{customer}</h2>
+                  <h2 className="truncate text-xl font-bold flex items-center gap-2">
+                    {customerName}
+                    {isFrozen && <span className="text-xs bg-danger/10 text-danger border border-danger/20 px-2 py-0.5 rounded-full font-medium">Frozen</span>}
+                  </h2>
                   <p className="font-mono text-[11px] text-muted-foreground">{id}</p>
                 </div>
               </div>
@@ -75,7 +124,7 @@ export function TransactionDetailsModal({
 
               <Section title="Risk analysis">
                 <Row label="Model" value="gbm-fraud-v4.2" mono />
-                {isFraud && <Row label="Risk Level" value={tx.risk_level} />}
+                {isFraud && <Row label="Risk Level" value={riskLevel} />}
                 <div className="flex items-center justify-between gap-3 py-1.5">
                   <span className="text-xs text-muted-foreground">Score</span>
                   <RiskMeter score={risk} />
@@ -116,10 +165,17 @@ export function TransactionDetailsModal({
                   Mark reviewed
                 </button>
                 <button
-                  onClick={() => toast.warning(`Account frozen`)}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-danger/15 px-3 py-2 text-xs font-semibold text-danger hover:bg-danger/25"
+                  onClick={toggleFreeze}
+                  disabled={freezeMutation.isPending || isStatusLoading || customerId === "Unknown"}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold disabled:opacity-50",
+                    isFrozen 
+                      ? "bg-success/15 text-success hover:bg-success/25" 
+                      : "bg-danger/15 text-danger hover:bg-danger/25"
+                  )}
                 >
-                  <Snowflake className="size-3.5" /> Freeze account
+                  {freezeMutation.isPending || isStatusLoading ? <Loader2 className="size-3.5 animate-spin" /> : <Snowflake className="size-3.5" />}
+                  {isFrozen ? "Unfreeze account" : "Freeze account"}
                 </button>
               </div>
             </div>

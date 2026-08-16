@@ -9,3 +9,4 @@ class MetricsResponse(BaseModel):
     total_transactions: int = 0
     per_minute: List[Dict[str, Any]] = []
     hourly: List[Dict[str, Any]] = []
+    by_country: List[Dict[str, Any]] = []

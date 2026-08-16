@@ -8,12 +8,15 @@ Instead of a single monolithic backend, this project separates responsibilities 
 
 ## 🏗️ Architecture Overview
 
-The system consists of 4 main components:
+The system consists of 7 main components:
 
 1. **Frontend (`swift-glass-pay`)**: A React web application where users initiate transfers, deposits, and withdrawals.
 2. **API Gateway (`api-service`)**: A FastAPI service that receives HTTP requests from the frontend, validates them, and instantly publishes a `TransactionCreatedEvent` to the Kafka broker.
 3. **Logger Service (`logger-service`)**: A Kafka consumer that listens for new transactions and securely persists them into a **PostgreSQL** database.
 4. **Fraud Service (`fraud-service`)**: A Kafka consumer running a Rule Engine. It analyzes every transaction in real-time. If a transaction is suspicious, it saves an audit log to **MongoDB** and publishes a `FraudDetectedEvent` back to Kafka.
+5. **Wallet Service (`wallet-service`)**: A Kafka consumer that listens for transaction events and safely updates the users' balances in **Supabase**. It also processes fraud alerts to automatically flag or reverse transactions.
+6. **Notification Service (`notification-service`)**: A Kafka consumer that listens for fraud alerts and triggers simulated notifications (e.g., email/console).
+7. **Sentinel Dashboard (`sentinel-dashboard`)**: A dedicated Admin UI built with React to monitor real-time system architecture, view live alerts, and track microservice health.
 
 ## 📋 Prerequisites
 
@@ -71,6 +74,22 @@ npm install
 cd ..
 ```
 
+**6. Install Notification Service Dependencies**
+```powershell
+cd notification-service
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+cd ..
+```
+
+**7. Install Sentinel Dashboard Dependencies**
+```powershell
+cd sentinel-dashboard
+npm install
+cd ..
+```
+
 ---
 
 ## 🚀 How to Run the Project Locally
@@ -116,10 +135,23 @@ cd wallet-service
 python main.py
 ```
 
-### Step 3: Start the Frontend
-Open a **fifth terminal window** for the React application:
+**Terminal 5: Notification Service**
+```powershell
+cd notification-service
+.\venv\Scripts\Activate.ps1
+uvicorn app.main:app --host 0.0.0.0 --port 8003 --reload
+```
+
+### Step 3: Start the Frontends
+Open a **sixth terminal window** for the Swift Glass Pay application:
 ```powershell
 cd swift-glass-pay
+npm run dev
+```
+
+Open a **seventh terminal window** for the Sentinel Dashboard:
+```powershell
+cd sentinel-dashboard
 npm run dev
 ```
 

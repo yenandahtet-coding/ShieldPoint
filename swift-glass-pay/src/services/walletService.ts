@@ -68,7 +68,7 @@ export const walletService = {
       currency: t.currency,
       type: t.sender_id === user.id ? "TRANSFER" : "RECEIVED",
       status: t.status,
-      timestamp: t.created_at,
+      timestamp: t.created_at ? (t.created_at.endsWith('Z') ? t.created_at : `${t.created_at}Z`) : new Date().toISOString(),
       note: t.note,
     }));
   },

@@ -1,10 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "motion/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Save, Server, Shield, Database, Radio, Bell, Moon, Sun, Layers } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
+
+const getBackendUrl = () => localStorage.getItem("backendUrl") || "http://localhost:8000/api";
+const setBackendUrl = (url: string) => localStorage.setItem("backendUrl", url);
 
 export const Route = createFileRoute("/_shell/settings")({
   head: () => ({

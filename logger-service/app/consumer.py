@@ -52,6 +52,10 @@ class KafkaConsumerWorker:
                     if msg.error().code() == KafkaError._PARTITION_EOF:
                         # End of partition
                         continue
+                    elif msg.error().code() == KafkaError.UNKNOWN_TOPIC_OR_PART:
+                        logger.warning(f"Topic not available yet: {msg.error()}")
+                        time.sleep(1)
+                        continue
                     else:
                         logger.error(f"Kafka error: {msg.error()}")
                         self.is_connected = False
@@ -85,11 +89,11 @@ class KafkaConsumerWorker:
                         time.sleep(2 ** retry_attempts)
                         
         except KafkaException as e:
-            logger.error(f"KafkaException: {e}")
+            print(f"KafkaException: {e}")
             self.is_connected = False
         finally:
             if self.consumer:
                 self.consumer.close()
-                logger.info("Kafka Consumer closed.")
+                print("Kafka Consumer closed.")
 
 consumer_worker = KafkaConsumerWorker()

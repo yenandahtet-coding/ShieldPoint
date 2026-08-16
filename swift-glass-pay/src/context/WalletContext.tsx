@@ -24,6 +24,7 @@ interface WalletState {
   setCurrency: (c: UserProfile["currency"]) => void;
   applyTransaction: (tx: Transaction) => void;
   format: (amount: number) => string;
+  country: string | null;
 }
 
 const WalletContext = createContext<WalletState | null>(null);
@@ -32,6 +33,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<UserProfile>({ id: '', name: '', phone: '', balance: 0, currency: 'MMK' });
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [country, setCountry] = useState<string | null>(null);
 
   // Restore session from Supabase on mount
   useEffect(() => {
@@ -60,9 +62,32 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (token) {
       walletService.getTransactions().then(setTransactions).catch(console.error);
+      
+      // Request location when authenticated
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            try {
+              const res = await fetch(
+                `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${position.coords.latitude}&longitude=${position.coords.longitude}&localityLanguage=en`
+              );
+              const data = await res.json();
+              if (data && data.countryName) {
+                setCountry(data.countryName);
+              }
+            } catch (err) {
+              console.error("Failed to reverse geocode location", err);
+            }
+          },
+          (err) => {
+            console.warn("Geolocation permission denied or failed", err);
+          }
+        );
+      }
     } else {
       setTransactions([]);
       setUser({ id: '', name: '', phone: '', balance: 0, currency: 'MMK' });
+      setCountry(null);
     }
   }, [token]);
 
@@ -108,8 +133,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       setCurrency,
       applyTransaction,
       format,
+      country,
     }),
-    [token, user, transactions, login, logout, setCurrency, applyTransaction, format],
+    [token, user, transactions, login, logout, setCurrency, applyTransaction, format, country],
   );
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;

@@ -135,6 +135,26 @@ function FraudsPage() {
         </AnimatePresence>
       </div>
 
+      <div className="flex items-center justify-between pt-4">
+        <button
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          disabled={page === 1}
+          className="rounded-xl border border-border bg-surface-2/50 px-4 py-2 text-sm font-semibold hover:bg-accent disabled:opacity-50"
+        >
+          Previous
+        </button>
+        <span className="text-sm font-medium text-muted-foreground">
+          Page {page}
+        </span>
+        <button
+          onClick={() => setPage((p) => p + 1)}
+          disabled={list.length < 20}
+          className="rounded-xl border border-border bg-surface-2/50 px-4 py-2 text-sm font-semibold hover:bg-accent disabled:opacity-50"
+        >
+          Next
+        </button>
+      </div>
+
       <TransactionDetailsModal tx={selected as any} onClose={() => setSelected(null)} />
     </div>
   );

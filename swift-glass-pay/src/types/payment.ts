@@ -28,6 +28,7 @@ export interface PaymentRequest {
   amount: number;
   pin: string;
   note?: string;
+  country?: string | null;
 }
 
 export interface Contact {

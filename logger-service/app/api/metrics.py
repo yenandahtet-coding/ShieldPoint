@@ -42,6 +42,17 @@ def get_metrics(db: Session = Depends(get_db)):
         hour_str = h_val.strftime("%H:00") if hasattr(h_val, 'strftime') else str(h_val)
         hourly.append({"hour": hour_str, "volume": vol})
 
+    # Transactions by country
+    country_counts = db.query(
+        TransactionRecord.country,
+        func.count().label('transactions')
+    ).group_by(TransactionRecord.country).all()
+    
+    by_country = []
+    for row in country_counts:
+        c_val = row[0] or "Unknown"
+        by_country.append({"country": c_val, "transactions": row[1]})
+
     return MetricsResponse(
         events_received=metrics_tracker.events_received,
         events_saved=metrics_tracker.events_saved,
@@ -49,5 +60,6 @@ def get_metrics(db: Session = Depends(get_db)):
         duplicate_events=metrics_tracker.duplicate_events,
         total_transactions=total_tx,
         per_minute=per_minute,
-        hourly=hourly
+        hourly=hourly,
+        by_country=by_country
     )

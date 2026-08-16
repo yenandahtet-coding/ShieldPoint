@@ -19,7 +19,7 @@ class KafkaConsumerWorker:
         self.consumer = None
         self.running = False
         self.is_connected = False
-        self.handler = EventHandler()
+        self.handler = None
 
     def start(self):
         self.running = True
@@ -46,6 +46,7 @@ class KafkaConsumerWorker:
 
     async def _consume_loop(self):
         try:
+            self.handler = EventHandler()
             self.consumer = Consumer(self.conf)
             self.consumer.subscribe(['transactions'])
             self.is_connected = True

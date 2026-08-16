@@ -30,8 +30,22 @@ export const metricsService = {
       fraudTrend: fraudMetrics.fraud_trend || [],
       riskDistribution: fraudMetrics.risk_distribution || [],
       hourly: loggerMetrics.hourly || [],
-      categories: [],
-      byCountry: []
+      byCountry: mergeCountryData(loggerMetrics.by_country || [], fraudMetrics.by_country || [])
     };
   }
 };
+
+function mergeCountryData(transactions: any[], frauds: any[]) {
+  const map = new Map();
+  transactions.forEach(t => {
+    map.set(t.country, { country: t.country, transactions: t.transactions, fraud: 0 });
+  });
+  frauds.forEach(f => {
+    if (map.has(f.country)) {
+      map.get(f.country).fraud = f.fraud;
+    } else {
+      map.set(f.country, { country: f.country, transactions: 0, fraud: f.fraud });
+    }
+  });
+  return Array.from(map.values()).sort((a, b) => b.transactions - a.transactions);
+}

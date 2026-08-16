@@ -23,7 +23,7 @@ export const Route = createFileRoute("/pay/phone")({
 });
 
 function PhoneTransfer() {
-  const { user, transactions, format, applyTransaction } = useWallet();
+  const { user, transactions, format, applyTransaction, country } = useWallet();
   const navigate = useNavigate();
   const [step, setStep] = useState<"phone" | "amount">("phone");
   const [phone, setPhone] = useState("");
@@ -73,7 +73,7 @@ function PhoneTransfer() {
     setError(null);
     try {
       const tx = await transactionService.sendToPhone(
-        { recipientPhone: phone, amount: numeric, pin, ...(note ? { note } : {}) },
+        { recipientPhone: phone, amount: numeric, pin, country, ...(note ? { note } : {}) },
         user,
       );
       applyTransaction(tx);

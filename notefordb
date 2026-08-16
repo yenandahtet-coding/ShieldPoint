@@ -1,3 +1,20 @@
+||=========================================================||
+||                                                         ||  
+||  ////IT IS ALSO FOR .env FILE CAUSE OF .gitignore////   ||
+||                                                         ||
+||=========================================================||
+
+====================
+.env for api-Service
+====================
+
+API_V1_STR=/api/v1
+PROJECT_NAME="Nova Pay API Service"
+PORT=8000
+DATABASE_URL=postgresql://postgres.vbrptxkiegiqxpirgfhv:5KPfIBWn6aV7RwHF@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres
+KAFKA_BOOTSTRAP_SERVERS=localhost:9092
+
+======================
 .env for fraud-service
 ======================
 
@@ -7,21 +24,44 @@ ENVIRONMENT=development
 KAFKA_BOOTSTRAP_SERVERS=localhost:9092
 CONSUMER_GROUP_ID=fraud-service-group
 MONGODB_URL="mongodb+srv://kohtetttan112_db_user:gj7TAHUUA65fZro2@cluster0.x9eyhqc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+# MONGODB_URL="mongodb://nova_user:nova_password@127.0.0.1:27017"
 MONGODB_DB_NAME=nova_fraud
 
+========================
 .env for swift-glass-Pay
 ========================
 
 VITE_SUPABASE_URL=https://vbrptxkiegiqxpirgfhv.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZicnB0eGtpZWdpcXhwaXJnZmh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NzI3MjUsImV4cCI6MjEwMTM0ODcyNX0.nB3yWyLQYL5tAuVbZu23LDH_5sgTx2NDs7vqzYfIe8M
 
+=======================
 .env for logger-service
-========================
+=======================
 
 PROJECT_NAME="Nova Pay Logger Service"
 PORT=8001
 ENVIRONMENT=development
-# DATABASE_URL=postgresql://nova_user:nova_password@localhost:5432/nova_logger
-DATABASE_URL=postgresql://postgres:5KPfIBWn6aV7RwHF@db.vbrptxkiegiqxpirgfhv.supabase.co:5432/postgres
+# DATABASE_URL=postgresql://nova_user:nova_password@127.0.0.1:5432/nova_logger
+DATABASE_URL=postgresql://postgres.vbrptxkiegiqxpirgfhv:5KPfIBWn6aV7RwHF@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres
 KAFKA_BOOTSTRAP_SERVERS=localhost:9092
 CONSUMER_GROUP_ID=logger-service-group
+
+=============================
+.env for nitification-service
+=============================
+
+PROJECT_NAME="Nova Pay Notification Service"
+PORT=8003
+ENVIRONMENT=development
+# KAFKA_BOOTSTRAP_SERVERS=localhost:9092
+KAFKA_BOOTSTRAP_SERVERS=127.0.0.1:9092
+CONSUMER_GROUP_ID=notification-service-group
+DATABASE_URL=sqlite:///./notifications.db
+
+=======================
+.env for wallet-service
+=======================
+
+KAFKA_BOOTSTRAP_SERVERS=localhost:9092
+SUPABASE_URL=https://vbrptxkiegiqxpirgfhv.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZicnB0eGtpZWdpcXhwaXJnZmh2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTc3MjcyNSwiZXhwIjoyMTAxMzQ4NzI1fQ.8HbacRPqTDGpaLAS5gmO_5jzYY1E5z4x9G8IGQV-KEc

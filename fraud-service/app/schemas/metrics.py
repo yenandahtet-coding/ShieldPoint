@@ -9,3 +9,4 @@ class MetricsResponse(BaseModel):
     high_risk: int
     risk_distribution: List[Dict[str, Any]] = []
     fraud_trend: List[Dict[str, Any]] = []
+    by_country: List[Dict[str, Any]] = []

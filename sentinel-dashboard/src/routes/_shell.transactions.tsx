@@ -185,7 +185,7 @@ function TransactionsPage() {
                         {fmtTime(t.created_at)}
                       </td>
                       <td className="px-4 py-3">
-                        <StatusBadge status={t.status === "ACCEPTED" ? "Approved" : "Fraud"} />
+                        <StatusBadge status={t.status === "ACCEPTED" || t.status === "COMPLETED" ? "Approved" : "Fraud"} />
                       </td>
                     </motion.tr>
                   ))}

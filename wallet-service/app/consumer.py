@@ -84,28 +84,40 @@ class WalletConsumer:
             
             # 1. Deduct sender
             sender = self.supabase.get_profile_by_id(sender_id)
-            if sender:
-                new_bal = float(sender.get("balance", 0)) - amount
-                self.supabase.update_balance(sender_id, new_bal)
-                
-            # 2. Add to receiver
             receiver = self.supabase.get_profile_by_phone(receiver_phone)
-            if receiver:
-                new_bal = float(receiver.get("balance", 0)) + amount
-                self.supabase.update_balance(receiver.get("id"), new_bal)
-                
-            # 3. Log transaction
-            self.supabase.insert_transaction({
-                "transaction_id": tx_id,
-                "sender_id": sender_id,
-                "receiver_phone": receiver_phone,
-                "amount": amount,
-                "currency": "MMK",
-                "status": "COMPLETED",
-                "note": payload.get("note", "Transfer"),
-                "event_id": str(uuid.uuid4()),
-                "correlation_id": correlation_id
-            })
+            
+            if sender and receiver:
+                if sender.get("status") == "FROZEN" or receiver.get("status") == "FROZEN":
+                    logger.warning(f"Transaction {tx_id} rejected because sender or receiver is FROZEN")
+                    self.supabase.insert_transaction({
+                        "transaction_id": tx_id,
+                        "sender_id": sender_id,
+                        "receiver_phone": receiver_phone,
+                        "amount": amount,
+                        "currency": "MMK",
+                        "status": "DECLINED",
+                        "note": "Rejected: Account Frozen",
+                        "event_id": str(uuid.uuid4()),
+                        "correlation_id": correlation_id
+                    })
+                else:
+                    new_bal_sender = float(sender.get("balance", 0)) - amount
+                    self.supabase.update_balance(sender_id, new_bal_sender)
+                    
+                    new_bal_receiver = float(receiver.get("balance", 0)) + amount
+                    self.supabase.update_balance(receiver.get("id"), new_bal_receiver)
+                    
+                    self.supabase.insert_transaction({
+                        "transaction_id": tx_id,
+                        "sender_id": sender_id,
+                        "receiver_phone": receiver_phone,
+                        "amount": amount,
+                        "currency": "MMK",
+                        "status": "COMPLETED",
+                        "note": payload.get("note", "Transfer"),
+                        "event_id": str(uuid.uuid4()),
+                        "correlation_id": correlation_id
+                    })
             
         elif event_type == "DEPOSIT_CREATED":
             receiver_id = payload.get("senderId") # The one depositing is the sender in payload
@@ -113,20 +125,34 @@ class WalletConsumer:
             
             receiver = self.supabase.get_profile_by_id(receiver_id)
             if receiver:
-                new_bal = float(receiver.get("balance", 0)) + amount
-                self.supabase.update_balance(receiver_id, new_bal)
-                
-            self.supabase.insert_transaction({
-                "transaction_id": tx_id,
-                "sender_id": "system_deposit",
-                "receiver_phone": receiver.get("phone") if receiver else "unknown",
-                "amount": amount,
-                "currency": "MMK",
-                "status": "COMPLETED",
-                "note": payload.get("note", "Deposit"),
-                "event_id": str(uuid.uuid4()),
-                "correlation_id": correlation_id
-            })
+                if receiver.get("status") == "FROZEN":
+                    logger.warning(f"Deposit {tx_id} rejected because account is FROZEN")
+                    self.supabase.insert_transaction({
+                        "transaction_id": tx_id,
+                        "sender_id": "system_deposit",
+                        "receiver_phone": receiver.get("phone"),
+                        "amount": amount,
+                        "currency": "MMK",
+                        "status": "DECLINED",
+                        "note": "Rejected: Account Frozen",
+                        "event_id": str(uuid.uuid4()),
+                        "correlation_id": correlation_id
+                    })
+                else:
+                    new_bal = float(receiver.get("balance", 0)) + amount
+                    self.supabase.update_balance(receiver_id, new_bal)
+                    
+                    self.supabase.insert_transaction({
+                        "transaction_id": tx_id,
+                        "sender_id": "system_deposit",
+                        "receiver_phone": receiver.get("phone"),
+                        "amount": amount,
+                        "currency": "MMK",
+                        "status": "COMPLETED",
+                        "note": payload.get("note", "Deposit"),
+                        "event_id": str(uuid.uuid4()),
+                        "correlation_id": correlation_id
+                    })
             
         elif event_type == "WITHDRAW_CREATED":
             sender_id = payload.get("senderId")
@@ -134,25 +160,59 @@ class WalletConsumer:
             
             sender = self.supabase.get_profile_by_id(sender_id)
             if sender:
-                new_bal = float(sender.get("balance", 0)) - amount
-                self.supabase.update_balance(sender_id, new_bal)
-                
-            self.supabase.insert_transaction({
-                "transaction_id": tx_id,
-                "sender_id": sender_id,
-                "receiver_phone": "system_withdraw",
-                "amount": amount,
-                "currency": "MMK",
-                "status": "COMPLETED",
-                "note": payload.get("note", "Withdraw"),
-                "event_id": str(uuid.uuid4()),
-                "correlation_id": correlation_id
-            })
+                if sender.get("status") == "FROZEN":
+                    logger.warning(f"Withdraw {tx_id} rejected because account is FROZEN")
+                    self.supabase.insert_transaction({
+                        "transaction_id": tx_id,
+                        "sender_id": sender_id,
+                        "receiver_phone": "system_withdraw",
+                        "amount": amount,
+                        "currency": "MMK",
+                        "status": "DECLINED",
+                        "note": "Rejected: Account Frozen",
+                        "event_id": str(uuid.uuid4()),
+                        "correlation_id": correlation_id
+                    })
+                else:
+                    new_bal = float(sender.get("balance", 0)) - amount
+                    self.supabase.update_balance(sender_id, new_bal)
+                    
+                    self.supabase.insert_transaction({
+                        "transaction_id": tx_id,
+                        "sender_id": sender_id,
+                        "receiver_phone": "system_withdraw",
+                        "amount": amount,
+                        "currency": "MMK",
+                        "status": "COMPLETED",
+                        "note": payload.get("note", "Withdraw"),
+                        "event_id": str(uuid.uuid4()),
+                        "correlation_id": correlation_id
+                    })
             
         elif event_type == "FRAUD_DETECTED":
-            # Just update the transaction status to FLAGGED
-            # We don't revert balances yet for simplicity
-            self.supabase.update_transaction_status(tx_id, "FLAGGED")
-            logger.warning(f"Transaction {tx_id} marked as FLAGGED in database due to fraud alert.")
+            # 1. Fetch the original transaction to get amounts and parties
+            original_tx = self.supabase.get_transaction_by_id(tx_id)
+            if original_tx and original_tx.get("status") not in ["FLAGGED", "DECLINED"]:
+                amount = float(original_tx.get("amount", 0))
+                sender_id = original_tx.get("sender_id")
+                receiver_phone = original_tx.get("receiver_phone")
+                
+                # 2. Refund Sender (add back)
+                sender = self.supabase.get_profile_by_id(sender_id)
+                if sender:
+                    new_bal = float(sender.get("balance", 0)) + amount
+                    self.supabase.update_balance(sender_id, new_bal)
+                    
+                # 3. Deduct Receiver (take back)
+                receiver = self.supabase.get_profile_by_phone(receiver_phone)
+                if receiver:
+                    new_bal = float(receiver.get("balance", 0)) - amount
+                    self.supabase.update_balance(receiver.get("id"), new_bal)
+                    
+                logger.warning(f"Balances reverted for fraudulent transaction {tx_id}")
+            
+            # 4. Update status to DECLINED
+            self.supabase.update_transaction_status(tx_id, "DECLINED")
+            logger.warning(f"Transaction {tx_id} marked as DECLINED in database due to fraud alert.")
 
 consumer_worker = WalletConsumer()

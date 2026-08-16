@@ -38,7 +38,26 @@ function AlertsPage() {
     refetchInterval: 5000
   });
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
-  const [acked, setAcked] = useState<string[]>([]);
+  const [acked, setAcked] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem("acked_alerts");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const handleAck = (id: string) => {
+    setAcked((prev) => {
+      if (prev.includes(id)) return prev;
+      const next = [...prev, id];
+      try {
+        localStorage.setItem("acked_alerts", JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+    toast.success(`Alert acknowledged`);
+  };
 
   // Map real notification history to alert format for UI
   const alerts = useMemo(() => {
@@ -126,10 +145,7 @@ function AlertsPage() {
                     {acked.includes(a.id) ? "Acknowledged" : a.status}
                   </span>
                   <button
-                    onClick={() => {
-                      setAcked((s) => [...s, a.id]);
-                      toast.success(`Alert acknowledged`);
-                    }}
+                    onClick={() => handleAck(a.id)}
                     disabled={acked.includes(a.id)}
                     className="rounded-lg border border-border p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40"
                     aria-label="Acknowledge alert"

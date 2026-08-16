@@ -4,6 +4,8 @@ import type { PaymentRequest, Transaction, UserProfile } from "@/types/payment";
 
 const rid = () => Math.random().toString(16).slice(2, 8);
 
+// Removed internal getLocationCountry in favor of Context-level tracking
+
 export const transactionService = {
   async sendToPhone(payload: PaymentRequest, user: UserProfile): Promise<Transaction> {
     if (payload.pin.length !== 6) throw new Error("PIN format is invalid");
@@ -16,7 +18,8 @@ export const transactionService = {
       recipientPhone: payload.recipientPhone,
       amount: payload.amount,
       pin: payload.pin,
-      note: payload.note
+      note: payload.note,
+      country: payload.country
     });
 
     return {
@@ -44,7 +47,8 @@ export const transactionService = {
     const data = await transactionBackendClient.transferMerchant({
       merchantPhone: merchant.phone,
       amount: merchant.amount,
-      note: "Merchant QR payment"
+      note: "Merchant QR payment",
+      country: merchant.country
     });
 
     return {
@@ -63,10 +67,10 @@ export const transactionService = {
     };
   },
 
-  async deposit(amount: number, user: UserProfile): Promise<Transaction> {
+  async deposit(amount: number, user: UserProfile, country?: string | null): Promise<Transaction> {
     if (amount <= 0) throw new Error("Amount must be greater than zero");
     
-    await transactionBackendClient.deposit({ amount, method: "BANK_TRANSFER" });
+    await transactionBackendClient.deposit({ amount, method: "BANK_TRANSFER", country: country || undefined });
 
     return {
       id: `dep_${rid()}`,
@@ -84,11 +88,11 @@ export const transactionService = {
     };
   },
 
-  async withdraw(amount: number, user: UserProfile): Promise<Transaction> {
+  async withdraw(amount: number, user: UserProfile, country?: string | null): Promise<Transaction> {
     if (amount <= 0) throw new Error("Amount must be greater than zero");
     if (amount > user.balance) throw new Error("Insufficient balance");
     
-    await transactionBackendClient.withdraw({ amount, method: "BANK_TRANSFER" });
+    await transactionBackendClient.withdraw({ amount, method: "BANK_TRANSFER", country: country || undefined });
 
     return {
       id: `wd_${rid()}`,

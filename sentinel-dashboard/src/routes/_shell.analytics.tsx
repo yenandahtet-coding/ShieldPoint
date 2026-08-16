@@ -11,8 +11,6 @@ import {
   Legend,
   Line,
   LineChart,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -127,28 +125,6 @@ function AnalyticsPage() {
               ))}
             </Bar>
           </BarChart>
-        </ResponsiveContainer>
-      </Panel>
-
-      <Panel title="Top merchant categories" subtitle="Volume share across the window" delay={0.15}>
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Tooltip {...chartTooltip} />
-            <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Pie
-              data={data.categories}
-              dataKey="volume"
-              nameKey="category"
-              innerRadius={55}
-              outerRadius={90}
-              paddingAngle={3}
-              stroke="none"
-            >
-              {data.categories?.map((_, i) => (
-                <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-              ))}
-            </Pie>
-          </PieChart>
         </ResponsiveContainer>
       </Panel>
 

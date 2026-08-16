@@ -62,6 +62,7 @@ class EventHandler:
             "risk_level": risk_level,
             "triggered_rules": triggered_rules,
             "timestamp": datetime.now(timezone.utc),
+            "country": event.payload.country,
             "correlation_id": str(event.correlationId)
         }
         

@@ -18,7 +18,7 @@ const api = axios.create({
 });
 
 export const transactionBackendClient = {
-  async transfer(payload: { recipientPhone: string; amount: number; pin: string; note?: string }): Promise<{ id: string, receiver_id: string } | null> {
+  async transfer(payload: { recipientPhone: string; amount: number; pin: string; note?: string; country?: string }): Promise<{ id: string, receiver_id: string } | null> {
     // 1. Get current authenticated user
     const { data: { user: authUser } } = await supabase.auth.getUser();
     if (!authUser || !authUser.email) throw new Error("Not authenticated");
@@ -30,7 +30,8 @@ export const transactionBackendClient = {
         receiverPhone: payload.recipientPhone,
         amount: payload.amount,
         note: payload.note || 'Transfer',
-        pin: payload.pin
+        pin: payload.pin,
+        country: payload.country
       });
 
       // The API returns { transactionId, status, message }
@@ -43,7 +44,7 @@ export const transactionBackendClient = {
     }
   },
   
-  async transferMerchant(payload: { merchantPhone: string; amount: number; note?: string; pin: string }): Promise<{ id: string, receiver_id: string } | null> {
+  async transferMerchant(payload: { merchantPhone: string; amount: number; note?: string; pin: string; country?: string }): Promise<{ id: string, receiver_id: string } | null> {
     const { data: { user: authUser } } = await supabase.auth.getUser();
     if (!authUser || !authUser.email) throw new Error("Not authenticated");
 
@@ -53,7 +54,8 @@ export const transactionBackendClient = {
         merchantId: payload.merchantPhone,
         amount: payload.amount,
         note: payload.note || "Merchant QR payment",
-        pin: payload.pin
+        pin: payload.pin,
+        country: payload.country
       });
 
       return { id: response.data.transactionId, receiver_id: payload.merchantPhone };
@@ -65,7 +67,7 @@ export const transactionBackendClient = {
     }
   },
 
-  async deposit(payload: { amount: number; method: string }): Promise<{ success: boolean; timestamp: string }> {
+  async deposit(payload: { amount: number; method: string; country?: string }): Promise<{ success: boolean; timestamp: string }> {
     const { data: { user: authUser } } = await supabase.auth.getUser();
     if (!authUser || !authUser.email) throw new Error("Not authenticated");
 
@@ -74,7 +76,8 @@ export const transactionBackendClient = {
         senderId: authUser.id,
         amount: payload.amount,
         note: `Deposit via ${payload.method}`,
-        pin: "000000" // Deposits might not need a PIN in reality
+        pin: "000000", // Deposits might not need a PIN in reality
+        country: payload.country
       });
 
       return { success: true, timestamp: new Date().toISOString() };
@@ -83,7 +86,7 @@ export const transactionBackendClient = {
     }
   },
 
-  async withdraw(payload: { amount: number; method: string; pin?: string }): Promise<{ success: boolean; timestamp: string }> {
+  async withdraw(payload: { amount: number; method: string; pin?: string; country?: string }): Promise<{ success: boolean; timestamp: string }> {
     const { data: { user: authUser } } = await supabase.auth.getUser();
     if (!authUser || !authUser.email) throw new Error("Not authenticated");
 
@@ -92,7 +95,8 @@ export const transactionBackendClient = {
         senderId: authUser.id,
         amount: payload.amount,
         note: `Withdrawal via ${payload.method}`,
-        pin: payload.pin || "000000"
+        pin: payload.pin || "000000",
+        country: payload.country
       });
 
       return { success: true, timestamp: new Date().toISOString() };

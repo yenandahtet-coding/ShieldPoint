@@ -97,7 +97,7 @@ function QrPage() {
 }
 
 function ScannerTab({ step, setStep }: { step: "scan" | "amount"; setStep: (s: "scan" | "amount") => void }) {
-  const { user, format, applyTransaction } = useWallet();
+  const { user, format, applyTransaction, country } = useWallet();
   const [recipient, setRecipient] = useState<{ name: string; phone: string; walletId: string } | null>(null);
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
@@ -185,7 +185,7 @@ function ScannerTab({ step, setStep }: { step: "scan" | "amount"; setStep: (s: "
     try {
       // If it's a merchant, one could call payMerchantQr, but here we assume general P2P based on phone
       const tx = await transactionService.sendToPhone(
-        { recipientPhone: recipient.phone, amount: numeric, pin, ...(note ? { note } : {}) },
+        { recipientPhone: recipient.phone, amount: numeric, pin, country, ...(note ? { note } : {}) },
         user,
       );
       applyTransaction(tx);

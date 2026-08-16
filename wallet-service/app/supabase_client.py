@@ -47,15 +47,23 @@ class SupabaseClient:
         return False
 
     def insert_transaction(self, transaction: Dict[str, Any]) -> bool:
-        url = "/rest/v1/transactions"
-        response = self.client.post(url, json=transaction)
+        url = "/rest/v1/transactions?on_conflict=transaction_id"
+        
+        headers = self.headers.copy()
+        headers["Prefer"] = "resolution=merge-duplicates, return=representation"
+        
+        response = self.client.post(url, json=transaction, headers=headers)
         if response.status_code in [201, 200]:
             return True
-        if "duplicate key value violates unique constraint" in response.text or response.status_code == 409:
-            logger.info(f"Transaction {transaction.get('transaction_id')} already exists.")
-            return True
-        logger.error(f"Failed to insert transaction {transaction.get('transaction_id')}: {response.text}")
+        logger.error(f"Failed to insert/upsert transaction {transaction.get('transaction_id')}: {response.text}")
         return False
+
+    def get_transaction_by_id(self, transaction_id: str) -> Optional[Dict[str, Any]]:
+        url = f"/rest/v1/transactions?transaction_id=eq.{transaction_id}&select=*"
+        response = self.client.get(url)
+        if response.status_code == 200 and len(response.json()) > 0:
+            return response.json()[0]
+        return None
 
     def update_transaction_status(self, transaction_id: str, status: str) -> bool:
         url = f"/rest/v1/transactions?transaction_id=eq.{transaction_id}"

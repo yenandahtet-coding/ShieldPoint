@@ -37,6 +37,7 @@ class NotificationConsumer:
                     continue
                 else:
                     logger.error(f"Consumer error: {msg.error()}")
+                    time.sleep(1)
                     continue
 
             # Process Message

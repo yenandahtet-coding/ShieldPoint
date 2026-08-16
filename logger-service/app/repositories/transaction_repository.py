@@ -25,6 +25,7 @@ class TransactionRepository:
             receiver_phone=payload.receiverPhone,
             amount=payload.amount,
             note=payload.note,
+            country=payload.country,
             event_id=event.eventId,
             correlation_id=event.correlationId,
             status="ACCEPTED",
