@@ -47,7 +47,7 @@ KAFKA_BOOTSTRAP_SERVERS=localhost:9092
 CONSUMER_GROUP_ID=logger-service-group
 
 =============================
-.env for nitification-service
+.env for notification-service
 =============================
 
 PROJECT_NAME="Nova Pay Notification Service"

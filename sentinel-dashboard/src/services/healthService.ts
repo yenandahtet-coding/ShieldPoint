@@ -21,12 +21,12 @@ const check = async (url: string): Promise<HealthStatus> => {
 export const healthService = {
   async getHealth() {
     const [api, logger, fraud, notification] = await Promise.all([
-      check("http://localhost:8000/health"),
-      check("http://localhost:8001/health"),
-      check("http://localhost:8002/health"),
-      check("http://localhost:8003/health")
+      check("http://127.0.0.1:8000/health"),
+      check("http://127.0.0.1:8001/health"),
+      check("http://127.0.0.1:8002/health"),
+      check("http://127.0.0.1:8003/health")
     ]);
-    
+
     return { api, logger, fraud, notification };
   }
 };

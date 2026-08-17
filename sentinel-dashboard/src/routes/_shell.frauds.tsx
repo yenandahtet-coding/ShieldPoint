@@ -1,14 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
-import { useMemo, useState } from "react";
-import { Eye, MapPin, Search, Snowflake, CheckCheck, Clock } from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
+import { Eye, MapPin, Search, Snowflake, CheckCheck, Clock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { fraudService, type FraudRecord } from "@/services/fraudService";
+import { adminService } from "@/services/adminService";
 import { RiskMeter, StatusBadge } from "@/components/status-badge";
 import { CardSkeleton } from "@/components/skeletons";
 import { TransactionDetailsModal } from "@/components/transaction-details-modal";
 import { fmtDateTime } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_shell/frauds")({
   head: () => ({
@@ -31,13 +33,22 @@ export const Route = createFileRoute("/_shell/frauds")({
 
 function FraudsPage() {
   const [page, setPage] = useState(1);
-  const { data, isLoading } = useQuery({ 
-    queryKey: ["frauds", page], 
+  const { data, isLoading } = useQuery({
+    queryKey: ["frauds", page],
     queryFn: () => fraudService.getFrauds(page, 20),
-    refetchInterval: 5000 
+    refetchInterval: 5000
   });
   const [query, setQuery] = useState("");
-  const [reviewed, setReviewed] = useState<string[]>([]);
+  const [reviewed, setReviewed] = useState<string[]>(() => {
+    if (typeof window !== "undefined") {
+      try { return JSON.parse(localStorage.getItem("reviewed_frauds") || "[]"); } catch { return []; }
+    }
+    return [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem("reviewed_frauds", JSON.stringify(reviewed));
+  }, [reviewed]);
   const [selected, setSelected] = useState<FraudRecord | null>(null);
 
   const list = useMemo(() => {
@@ -81,8 +92,8 @@ function FraudsPage() {
             >
               <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                 <div className="min-w-0">
-                  <p className="font-mono text-[11px] text-muted-foreground">{t.transaction_id.substring(0,12)}...</p>
-                  <h3 className="truncate font-mono text-base font-semibold">{t.sender_id.substring(0,8)}...</h3>
+                  <p className="font-mono text-[11px] text-muted-foreground">{t.transaction_id.substring(0, 12)}...</p>
+                  <h3 className="truncate font-mono text-base font-semibold">{t.sender_id.substring(0, 8)}...</h3>
                 </div>
                 <StatusBadge status={"Fraud"} />
               </div>
@@ -92,7 +103,7 @@ function FraudsPage() {
                   <Clock className="size-3.5 shrink-0" /> {fmtDateTime(t.timestamp)}
                 </p>
                 <p className="flex items-center gap-1.5">
-                  <MapPin className="size-3.5 shrink-0" /> Correlation: {t.correlation_id.substring(0,8)}
+                  <MapPin className="size-3.5 shrink-0" /> Correlation: {t.correlation_id.substring(0, 8)}
                 </p>
               </div>
 
@@ -115,7 +126,7 @@ function FraudsPage() {
                 <button
                   onClick={() => {
                     setReviewed((r) => [...r, t.fraud_id]);
-                    toast.success(`${t.fraud_id.substring(0,8)} marked reviewed`);
+                    toast.success(`${t.fraud_id.substring(0, 8)} marked reviewed`);
                   }}
                   disabled={reviewed.includes(t.fraud_id)}
                   className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-success/15 px-3 py-2 text-xs font-semibold text-success hover:bg-success/25 disabled:opacity-50"
@@ -123,12 +134,7 @@ function FraudsPage() {
                   <CheckCheck className="size-3.5" />
                   {reviewed.includes(t.fraud_id) ? "Reviewed" : "Mark reviewed"}
                 </button>
-                <button
-                  onClick={() => toast.warning(`Account frozen for ${t.sender_id}`)}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-danger/15 px-3 py-2 text-xs font-semibold text-danger hover:bg-danger/25"
-                >
-                  <Snowflake className="size-3.5" /> Freeze
-                </button>
+                <FreezeButton customerId={t.sender_id} />
               </div>
             </motion.article>
           ))}
@@ -155,7 +161,58 @@ function FraudsPage() {
         </button>
       </div>
 
-      <TransactionDetailsModal tx={selected as any} onClose={() => setSelected(null)} />
+      <TransactionDetailsModal
+        tx={selected as any}
+        onClose={() => setSelected(null)}
+        onMarkReviewed={(id) => {
+          setReviewed((r) => [...r, id]);
+          toast.success(`${id.substring(0, 8)} marked reviewed`);
+        }}
+        isReviewed={selected ? reviewed.includes(selected.fraud_id || selected.transaction_id) : false}
+      />
     </div>
+  );
+}
+
+function FreezeButton({ customerId }: { customerId: string }) {
+  const queryClient = useQueryClient();
+  const { data: statusData, isLoading: isStatusLoading } = useQuery({
+    queryKey: ["profile-status", customerId],
+    queryFn: () => adminService.getAccountStatus(customerId),
+    enabled: !!customerId && customerId !== "Unknown",
+    retry: false
+  });
+
+  const isFrozen = statusData?.status === "FROZEN";
+
+  const freezeMutation = useMutation({
+    mutationFn: () => isFrozen ? adminService.unfreezeAccount(customerId) : adminService.freezeAccount(customerId),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["profile-status", customerId], data);
+      if (data.status === "FROZEN") {
+        toast.warning(`Account frozen`);
+      } else {
+        toast.success(`Account unfrozen`);
+      }
+    },
+    onError: () => {
+      toast.error(`Failed to change account status`);
+    }
+  });
+
+  return (
+    <button
+      onClick={() => freezeMutation.mutate()}
+      disabled={freezeMutation.isPending || isStatusLoading || !customerId || customerId === "Unknown"}
+      className={cn(
+        "inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold disabled:opacity-50",
+        isFrozen
+          ? "bg-success/15 text-success hover:bg-success/25"
+          : "bg-danger/15 text-danger hover:bg-danger/25"
+      )}
+    >
+      {freezeMutation.isPending || isStatusLoading ? <Loader2 className="size-3.5 animate-spin" /> : <Snowflake className="size-3.5" />}
+      {isFrozen ? "Unfreeze" : "Freeze"}
+    </button>
   );
 }

@@ -14,7 +14,7 @@ export interface TransactionRecord {
   created_at: string;
 }
 
-const client = axios.create({ baseURL: "http://localhost:8001" });
+const client = axios.create({ baseURL: "http://127.0.0.1:8001" });
 
 export const loggerService = {
   async getTransactions(page = 1, limit = 50): Promise<TransactionRecord[]> {
@@ -23,7 +23,7 @@ export const loggerService = {
     });
     return data;
   },
-  
+
   async getTransaction(id: string): Promise<TransactionRecord> {
     const { data } = await client.get<TransactionRecord>(`/transactions/${id}`);
     return data;

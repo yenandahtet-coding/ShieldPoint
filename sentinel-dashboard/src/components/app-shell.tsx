@@ -1,4 +1,6 @@
 import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { metricsService } from "@/services/metricsService";
 import { motion, AnimatePresence } from "motion/react";
 import { useEffect, useState } from "react";
 import {
@@ -137,6 +139,12 @@ export function AppShell() {
 }
 
 function SidebarContent({ pathname }: { pathname: string }) {
+  const { data } = useQuery({
+    queryKey: ["sidebar-metrics"],
+    queryFn: metricsService.getMetrics,
+    refetchInterval: 5000
+  });
+
   return (
     <div className="flex h-full flex-col gap-6 p-5">
       <Link to="/dashboard" className="flex items-center gap-3">
@@ -176,11 +184,6 @@ function SidebarContent({ pathname }: { pathname: string }) {
         })}
       </nav>
 
-      <div className="glass rounded-2xl p-4">
-        <p className="text-xs font-semibold text-muted-foreground">Pipeline throughput</p>
-        <p className="mt-1 font-display text-2xl font-bold text-gradient">1.2k/s</p>
-        <p className="mt-1 text-[11px] text-muted-foreground">Kafka · 3 partitions · lag 42</p>
-      </div>
     </div>
   );
 }

@@ -50,8 +50,9 @@ export default {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      try { require('fs').writeFileSync('ssr-error.log', String(error?.stack || error)); } catch (e) { }
       return new Response(renderErrorPage(), {
         status: 500,
         headers: { "content-type": "text/html; charset=utf-8" },

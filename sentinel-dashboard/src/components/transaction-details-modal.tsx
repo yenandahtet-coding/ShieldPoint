@@ -11,13 +11,17 @@ import { cn } from "@/lib/utils";
 export function TransactionDetailsModal({
   tx,
   onClose,
+  onMarkReviewed,
+  isReviewed,
 }: {
   tx: any | null;
   onClose: () => void;
+  onMarkReviewed?: (id: string) => void;
+  isReviewed?: boolean;
 }) {
   if (!tx) return null;
-  
-  const id = tx.transaction_id || tx.id;
+
+  const id = tx.fraud_id || tx.transaction_id || tx.id;
   const rawCustomer = tx.sender_id || tx.customer;
   const customerId = rawCustomer || "Unknown";
   const customerName = rawCustomer ? rawCustomer.substring(0, 8) + "..." : "Unknown";
@@ -52,7 +56,7 @@ export function TransactionDetailsModal({
     if (customerId === "Unknown") return;
     freezeMutation.mutate();
   };
-  
+
   const isFraudStatus = tx.status && tx.status !== "ACCEPTED" && tx.status !== "COMPLETED";
   const { data: fraudData } = useQuery({
     queryKey: ["fraud", id],
@@ -60,7 +64,7 @@ export function TransactionDetailsModal({
     enabled: !!id && tx.risk_score === undefined && (isFraudStatus || tx.status === "Fraud"),
     retry: false
   });
-  
+
   const isFraud = tx.risk_score !== undefined || fraudData !== undefined || isFraudStatus;
   const status = isFraud ? "Fraud" : "Approved";
   const time = tx.timestamp || tx.created_at;
@@ -95,7 +99,12 @@ export function TransactionDetailsModal({
                     {customerName}
                     {isFrozen && <span className="text-xs bg-danger/10 text-danger border border-danger/20 px-2 py-0.5 rounded-full font-medium">Frozen</span>}
                   </h2>
-                  <p className="font-mono text-[11px] text-muted-foreground">{id}</p>
+                  <p className="font-mono text-[11px] text-muted-foreground mt-1">
+                    Fraud ID: {tx.fraud_id || id}
+                  </p>
+                  <p className="font-mono text-[11px] text-muted-foreground">
+                    Trans ID: {tx.transaction_id || tx.id}
+                  </p>
                 </div>
               </div>
               <button
@@ -159,18 +168,25 @@ export function TransactionDetailsModal({
               </div>
               <div className="flex shrink-0 flex-wrap justify-end gap-2">
                 <button
-                  onClick={() => toast.success(`${id.substring(0,8)} marked reviewed`)}
-                  className="rounded-xl border border-border px-3 py-2 text-xs font-semibold hover:bg-accent"
+                  onClick={() => {
+                    if (onMarkReviewed && id) onMarkReviewed(id);
+                    else toast.success(`${id.substring(0, 8)} marked reviewed`);
+                  }}
+                  disabled={isReviewed}
+                  className={cn(
+                    "rounded-xl border border-border px-3 py-2 text-xs font-semibold hover:bg-accent",
+                    isReviewed ? "opacity-50 cursor-not-allowed bg-accent" : ""
+                  )}
                 >
-                  Mark reviewed
+                  {isReviewed ? "Reviewed" : "Mark reviewed"}
                 </button>
                 <button
                   onClick={toggleFreeze}
                   disabled={freezeMutation.isPending || isStatusLoading || customerId === "Unknown"}
                   className={cn(
                     "inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold disabled:opacity-50",
-                    isFrozen 
-                      ? "bg-success/15 text-success hover:bg-success/25" 
+                    isFrozen
+                      ? "bg-success/15 text-success hover:bg-success/25"
                       : "bg-danger/15 text-danger hover:bg-danger/25"
                   )}
                 >

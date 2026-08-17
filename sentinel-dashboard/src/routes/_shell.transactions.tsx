@@ -43,16 +43,26 @@ type SortKey = "created_at" | "amount" | "riskScore";
 function TransactionsPage() {
   const [page, setPage] = useState(1);
   const [live, setLive] = useState(true);
-  
+
   // Refetch every 3s if live is enabled
-  const { data: rows = [], isLoading } = useQuery({ 
-    queryKey: ["transactions", page], 
+  const { data: rows = [], isLoading } = useQuery({
+    queryKey: ["transactions", page],
     queryFn: () => loggerService.getTransactions(page, 20),
     refetchInterval: live ? 3000 : false
   });
 
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<string | "All">("All");
+  const [reviewed, setReviewed] = useState<string[]>(() => {
+    if (typeof window !== "undefined") {
+      try { return JSON.parse(localStorage.getItem("reviewed_frauds") || "[]"); } catch { return []; }
+    }
+    return [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem("reviewed_frauds", JSON.stringify(reviewed));
+  }, [reviewed]);
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({
     key: "created_at",
     dir: "desc",
@@ -175,8 +185,8 @@ function TransactionsPage() {
                         "cursor-pointer border-b border-border/60 transition-colors hover:bg-accent/50"
                       )}
                     >
-                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{t.transaction_id.substring(0,8)}...</td>
-                      <td className="whitespace-nowrap px-4 py-3 font-mono text-xs">{t.sender_id.substring(0,8)}...</td>
+                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{t.transaction_id.substring(0, 8)}...</td>
+                      <td className="whitespace-nowrap px-4 py-3 font-mono text-xs">{t.sender_id.substring(0, 8)}...</td>
                       <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-muted-foreground">{t.receiver_phone || "N/A"}</td>
                       <td className="whitespace-nowrap px-4 py-3 tabular-nums">
                         {fmtMoney(t.amount, t.currency)}
@@ -223,7 +233,15 @@ function TransactionsPage() {
         </div>
       </div>
 
-      <TransactionDetailsModal tx={selected as any} onClose={() => setSelected(null)} />
+      <TransactionDetailsModal
+        tx={selected as any}
+        onClose={() => setSelected(null)}
+        onMarkReviewed={(id) => {
+          setReviewed((r) => [...r, id]);
+          toast.success(`${id.substring(0, 8)} marked reviewed`);
+        }}
+        isReviewed={selected ? reviewed.includes((selected as any).fraud_id || selected.transaction_id || (selected as any).id) : false}
+      />
     </div>
   );
 }

@@ -8,7 +8,7 @@ export interface NotificationHistory {
   timestamp: string;
 }
 
-const client = axios.create({ baseURL: "http://localhost:8003" });
+const client = axios.create({ baseURL: "http://127.0.0.1:8003" });
 
 export const notificationService = {
   async getHistory(): Promise<NotificationHistory[]> {

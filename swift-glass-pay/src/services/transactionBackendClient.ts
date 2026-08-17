@@ -8,7 +8,7 @@ import axios from "axios";
  * distributed FastAPI backend (api-service).
  */
 
-const API_BASE_URL = "http://localhost:8000"; // Can be moved to .env in the future
+const API_BASE_URL = "http://127.0.0.1:8000"; // Can be moved to .env in the future
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -43,7 +43,7 @@ export const transactionBackendClient = {
       throw new Error(error.message || "Failed to process transfer");
     }
   },
-  
+
   async transferMerchant(payload: { merchantPhone: string; amount: number; note?: string; pin: string; country?: string }): Promise<{ id: string, receiver_id: string } | null> {
     const { data: { user: authUser } } = await supabase.auth.getUser();
     if (!authUser || !authUser.email) throw new Error("Not authenticated");

@@ -15,9 +15,14 @@ class FraudRepository:
         """
         try:
             collection = db_client.db[self.collection_name]
-            result = await collection.insert_one(document)
-            logger.info(f"Fraud report saved to MongoDB with ID: {result.inserted_id}")
-            return str(result.inserted_id)
+            tx_id = document.get("transaction_id")
+            result = await collection.update_one(
+                {"transaction_id": tx_id},
+                {"$set": document},
+                upsert=True
+            )
+            logger.info(f"Fraud report upserted to MongoDB for Tx: {tx_id}")
+            return tx_id
         except Exception as e:
             logger.error(f"Error saving fraud report to MongoDB: {e}")
             raise

@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
 
-const getBackendUrl = () => localStorage.getItem("backendUrl") || "http://localhost:8000/api";
+const getBackendUrl = () => localStorage.getItem("backendUrl") || "http://127.0.0.1:8000/api";
 const setBackendUrl = (url: string) => localStorage.setItem("backendUrl", url);
 
 export const Route = createFileRoute("/_shell/settings")({
@@ -30,7 +30,7 @@ export const Route = createFileRoute("/_shell/settings")({
 
 function SettingsPage() {
   const { theme, toggle } = useTheme();
-  const [url, setUrl] = useState("http://localhost:8000/api");
+  const [url, setUrl] = useState("http://127.0.0.1:8000/api");
 
   useEffect(() => setUrl(getBackendUrl()), []);
 
